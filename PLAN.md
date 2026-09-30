@@ -117,10 +117,10 @@ Spiele). Mit eigener Historie + Prior sind sie brauchbar, mit geteilten Daten we
 - Jede Phase = eigener Commit-Block, Stand in dieser Datei abhaken.
 
 ## Status
-- [ ] Phase 0 – Fundament
-- [ ] Phase 1 – Plugin-Skelett und Spielzustand
-- [ ] Phase 2 – Overlay 1:1
-- [ ] Phase 3 – Live-Verhalten
+- [x] Phase 0 – Fundament (Solution, CI-Build, Kern-Tests; Laden in HDT noch im Spiel zu bestätigen)
+- [ ] Phase 1 – Plugin-Skelett und Spielzustand (Live-State wird schon geloggt)
+- [ ] Phase 2 – Overlay 1:1 (Farbformel und Balken-Geometrie fertig und getestet)
+- [ ] Phase 3 – Live-Verhalten (Kernlogik fertig und getestet: Keep-Rate-Matching, Gate, Timing)
 - [ ] Phase 4 – Lobby, Onboarding, Settings
 - [ ] Phase 5 – Daten-Engine
 - [ ] Phase 6 – Feinschliff und Release
