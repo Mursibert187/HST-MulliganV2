@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MulliganCore", "src\MulliganCore\MulliganCore.csproj", "{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B001}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MulliganCore.Tests", "src\MulliganCore.Tests\MulliganCore.Tests.csproj", "{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B002}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MulliganPlugin", "src\MulliganPlugin\MulliganPlugin.csproj", "{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B003}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A7C1E44-9D26-4E1F-9B18-9A9EA1E1B003}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

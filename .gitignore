@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.userprefs
+*.pidb
+.vs/
+
+# Fetched HDT SDK
+lib/
+!lib/.gitkeep
+
+# NuGet
+*.nupkg
+packages/
+project.lock.json
+project.assets.json
+
+# JetBrains
+.idea/
+*.DotSettings.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+TestResults/
+*.coverage
+*.coveragexml
+coverage/
+
+# Local settings
+appsettings.local.json
+*.local.json

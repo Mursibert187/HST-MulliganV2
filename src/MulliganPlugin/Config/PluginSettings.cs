@@ -1,0 +1,56 @@
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace HstMulligan.Plugin.Config
+{
+    public sealed class PluginSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public string PrimarySource { get; set; } = "firestone";
+        public string FirestoneUrlTemplate { get; set; } =
+            "https://static.zerotoheroes.com/hearthstone/data/mulligan/{format}/{rank}.gz.json";
+        public string HsReplayUrlTemplate { get; set; } =
+            "https://hsreplay.net/analytics/query/card_mulligan_winrate_by_opponent_class/?GameType={format}&RankRange={rank}";
+        public string OfflineDatasetPath { get; set; } = "";
+        public int CacheTtlMinutes { get; set; } = 60;
+        public int ConfidenceSaturationSamples { get; set; } = 500;
+        public double OverlayOpacity { get; set; } = 0.95;
+        public double OverlayScale { get; set; } = 1.0;
+        public bool ShowDetailsPanel { get; set; } = true;
+        public string DetailsPanelHotkey { get; set; } = "F9";
+
+        [JsonIgnore]
+        public static string SettingsPath => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "HearthstoneDeckTracker", "Plugins", "MulliganV2", "settings.json");
+
+        public static PluginSettings LoadOrCreate()
+        {
+            try
+            {
+                if (File.Exists(SettingsPath))
+                {
+                    var json = File.ReadAllText(SettingsPath);
+                    var loaded = JsonSerializer.Deserialize<PluginSettings>(json);
+                    if (loaded != null) return loaded;
+                }
+            }
+            catch { }
+            return new PluginSettings();
+        }
+
+        public void Save()
+        {
+            try
+            {
+                var dir = Path.GetDirectoryName(SettingsPath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                var opts = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(this, opts));
+            }
+            catch { }
+        }
+    }
+}

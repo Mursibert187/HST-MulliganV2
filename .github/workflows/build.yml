@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+    branches: [ main, "claude/**" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Fetch HDT SDK
+        shell: pwsh
+        run: pwsh scripts/fetch-hdt.ps1
+
+      - name: NuGet restore
+        run: nuget restore HST-MulliganV2.sln
+
+      - name: Build (Release)
+        run: msbuild HST-MulliganV2.sln /p:Configuration=Release /p:Platform="Any CPU" /m /verbosity:minimal
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vstest = & $vswhere -latest -find "**\vstest.console.exe" | Select-Object -First 1
+          & $vstest src\MulliganCore.Tests\bin\Release\net48\MulliganCore.Tests.dll
+
+      - name: Package plugin
+        shell: pwsh
+        run: |
+          $out = "dist\MulliganV2"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item src\MulliganPlugin\bin\Release\net48\MulliganPlugin.dll $out
+          Copy-Item src\MulliganPlugin\bin\Release\net48\MulliganCore.dll $out
+          Compress-Archive -Path "$out\*" -DestinationPath dist\MulliganV2.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MulliganV2
+          path: dist/MulliganV2.zip

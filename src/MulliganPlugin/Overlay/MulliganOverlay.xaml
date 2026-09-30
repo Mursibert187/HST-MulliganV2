@@ -1,0 +1,14 @@
+<UserControl x:Class="HstMulligan.Plugin.Overlay.MulliganOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False" IsHitTestVisible="False"
+             Background="Transparent">
+    <Grid>
+        <Canvas x:Name="BadgeLayer"/>
+        <Grid x:Name="DetailsDock"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Bottom"
+              IsHitTestVisible="True"
+              Margin="0,0,0,32"/>
+    </Grid>
+</UserControl>

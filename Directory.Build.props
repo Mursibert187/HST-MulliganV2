@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile>
+    <SignAssembly>false</SignAssembly>
+    <Copyright>Copyright (c) $([System.DateTime]::Now.Year) HST-MulliganV2 contributors</Copyright>
+    <PluginVersion>2.0.0</PluginVersion>
+    <Version>$(PluginVersion)</Version>
+    <FileVersion>$(PluginVersion).0</FileVersion>
+    <AssemblyVersion>$(PluginVersion).0</AssemblyVersion>
+    <RepositoryUrl>https://github.com/Mursibert187/HST-MulliganV2</RepositoryUrl>
+    <HdtLibDir>$(MSBuildThisFileDirectory)lib\</HdtLibDir>
+  </PropertyGroup>
+</Project>
