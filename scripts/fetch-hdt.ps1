@@ -57,10 +57,19 @@ function Copy-FromRelease([string]$ver) {
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
     $extracted = Join-Path $tmp 'ex'
     Expand-Archive -LiteralPath $zip -DestinationPath $extracted -Force
-    $installRoot = Get-ChildItem $extracted -Recurse -Include 'HearthstoneDeckTracker.exe' -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty DirectoryName
-    if (-not $installRoot) { throw "Could not locate HearthstoneDeckTracker.exe inside $zip" }
-    Copy-FromInstall $installRoot
+    Write-Host "Extracted into $extracted; top-level entries:"
+    Get-ChildItem -LiteralPath $extracted | ForEach-Object { Write-Host "  $($_.Name)" }
+    $hit = Get-ChildItem -LiteralPath $extracted -Recurse -Filter 'HearthstoneDeckTracker.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $hit)
+    {
+        $alt = Get-ChildItem -LiteralPath $extracted -Recurse -Filter 'HearthDb.dll' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($alt) { $hit = $alt }
+    }
+    if (-not $hit)
+    {
+        throw "Could not locate HearthstoneDeckTracker.exe or HearthDb.dll under $extracted. Pass -HdtInstall with a path to your local HDT install instead."
+    }
+    Copy-FromInstall $hit.DirectoryName
     Remove-Item $tmp -Recurse -Force
 }
 
