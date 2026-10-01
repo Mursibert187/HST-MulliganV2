@@ -75,7 +75,10 @@ namespace HstMulligan.Plugin.Bindings
         {
             if (!_phaseOpen && !_client.IsMulliganPhase) return;
             if (!_phaseOpen && _client.IsMulliganPhase)
+            {
+                if (!IsPinnedDeckMatch(_client.ReadContext())) return;
                 OpenPhase();
+            }
 
             try
             {
@@ -109,8 +112,13 @@ namespace HstMulligan.Plugin.Bindings
 
         private void HandleGameStart()
         {
-            OpenPhase();
             _lastFetchKey = null;
+            if (!IsPinnedDeckMatch(_client.ReadContext()))
+            {
+                _log.Info("game start ignored: active deck does not match pinned signature");
+                return;
+            }
+            OpenPhase();
             Tick();
         }
 
@@ -121,6 +129,15 @@ namespace HstMulligan.Plugin.Bindings
             _lastHandSig = null;
             _lastTossSig = null;
             _bus.Publish(new MulliganPhaseStartedEvent());
+        }
+
+        private bool IsPinnedDeckMatch(MulliganContext ctx)
+        {
+            if (!_settings.OnlyShowForPinnedDeck) return true;
+            var pinned = _settings.PinnedDeckSignature;
+            if (string.IsNullOrEmpty(pinned)) return true;
+            if (ctx == null || string.IsNullOrEmpty(ctx.ActiveDeckSignature)) return false;
+            return string.Equals(ctx.ActiveDeckSignature, pinned, StringComparison.Ordinal);
         }
 
         private void HandleGameEnd()
@@ -136,7 +153,8 @@ namespace HstMulligan.Plugin.Bindings
             _fetchCts?.Cancel();
             _fetchCts = new CancellationTokenSource();
             var token = _fetchCts.Token;
-            var query = new MulliganQuery(ctx.Format, ctx.RankBracket, ctx.DeckCode);
+            var shortId = string.IsNullOrEmpty(_settings.PinnedDeckShortId) ? null : _settings.PinnedDeckShortId;
+            var query = new MulliganQuery(ctx.Format, ctx.RankBracket, ctx.DeckCode, ctx.ArchetypeId, shortId);
             var src = _source;
             _ = Task.Run(async () =>
             {

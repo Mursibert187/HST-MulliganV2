@@ -30,7 +30,9 @@ namespace HstMulligan.Core.Data
         {
             var url = _urlTemplate
                 .Replace("{format}", query.Format.ToWireString())
-                .Replace("{rank}", query.RankBracket.ToWireString());
+                .Replace("{rank}", query.RankBracket.ToWireString())
+                .Replace("{shortId}", query.DeckShortId ?? "")
+                .Replace("{deck}", query.DeckCode ?? "");
             using (var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false))
             {
                 resp.EnsureSuccessStatusCode();

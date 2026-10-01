@@ -12,6 +12,7 @@ namespace HstMulligan.Core.Live
         public RankBracket RankBracket { get; }
         public string DeckCode { get; }
         public string ArchetypeId { get; }
+        public string ActiveDeckSignature { get; }
         public bool HasCoin { get; }
         public OpponentClass? OverrideOpponent { get; }
 
@@ -22,7 +23,8 @@ namespace HstMulligan.Core.Live
             string deckCode,
             bool hasCoin,
             string archetypeId = null,
-            OpponentClass? overrideOpponent = null)
+            OpponentClass? overrideOpponent = null,
+            string activeDeckSignature = null)
         {
             Format = format;
             Opponent = opponent;
@@ -31,13 +33,14 @@ namespace HstMulligan.Core.Live
             ArchetypeId = archetypeId;
             HasCoin = hasCoin;
             OverrideOpponent = overrideOpponent;
+            ActiveDeckSignature = activeDeckSignature;
         }
 
         public OpponentClass EffectiveOpponent =>
             OverrideOpponent.HasValue ? OverrideOpponent.Value : Opponent;
 
         public MulliganContext WithOverrideOpponent(OpponentClass? oc) =>
-            new MulliganContext(Format, Opponent, RankBracket, DeckCode, HasCoin, ArchetypeId, oc);
+            new MulliganContext(Format, Opponent, RankBracket, DeckCode, HasCoin, ArchetypeId, oc, ActiveDeckSignature);
 
         public static MulliganContext Unknown =>
             new MulliganContext(FormatType.Unknown, OpponentClass.Unknown, RankBracket.AllRanks, null, false);
@@ -51,6 +54,7 @@ namespace HstMulligan.Core.Live
                 && HasCoin == other.HasCoin
                 && string.Equals(DeckCode, other.DeckCode, StringComparison.Ordinal)
                 && string.Equals(ArchetypeId, other.ArchetypeId, StringComparison.Ordinal)
+                && string.Equals(ActiveDeckSignature, other.ActiveDeckSignature, StringComparison.Ordinal)
                 && OverrideOpponent == other.OverrideOpponent;
         }
 
@@ -67,6 +71,7 @@ namespace HstMulligan.Core.Live
                 h = h * 31 + HasCoin.GetHashCode();
                 h = h * 31 + (DeckCode?.GetHashCode() ?? 0);
                 h = h * 31 + (ArchetypeId?.GetHashCode() ?? 0);
+                h = h * 31 + (ActiveDeckSignature?.GetHashCode() ?? 0);
                 h = h * 31 + (OverrideOpponent?.GetHashCode() ?? 0);
                 return h;
             }

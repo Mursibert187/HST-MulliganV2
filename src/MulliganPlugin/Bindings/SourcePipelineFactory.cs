@@ -12,6 +12,14 @@ namespace HstMulligan.Plugin.Bindings
         {
             var sources = new List<IMulliganDataSource>();
 
+            // Pinned-deck feed takes priority when configured, because it's
+            // the only source that can deliver per-this-exact-deck stats.
+            if (!string.IsNullOrWhiteSpace(settings.PinnedDeckShortId)
+                && !string.IsNullOrWhiteSpace(settings.PinnedDeckUrlTemplate))
+            {
+                sources.Add(new HsReplayDataSource(http, settings.PinnedDeckUrlTemplate));
+            }
+
             if (!string.IsNullOrEmpty(settings.OfflineDatasetPath))
                 sources.Add(new FileDataSource(settings.OfflineDatasetPath));
 
@@ -22,7 +30,6 @@ namespace HstMulligan.Plugin.Bindings
                     sources.Add(new FirestoneDataSource(http, settings.FirestoneUrlTemplate));
                     break;
                 case "file":
-                    // already added above if path set
                     break;
                 default:
                     sources.Add(new FirestoneDataSource(http, settings.FirestoneUrlTemplate));

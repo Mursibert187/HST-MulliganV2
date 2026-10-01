@@ -136,6 +136,16 @@ namespace HstMulligan.Plugin.Bindings
             return result;
         }
 
+        public string ReadActiveDeckSignature()
+        {
+            try
+            {
+                var dbfIds = ReadActiveDeckDbfIds();
+                return dbfIds.Count == 0 ? null : HstMulligan.Core.Abstractions.Signature.Compute(dbfIds);
+            }
+            catch { return null; }
+        }
+
         public OpponentClass ReadActiveDeckHeroClass()
         {
             try

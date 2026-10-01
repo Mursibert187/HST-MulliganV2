@@ -25,6 +25,11 @@ namespace HstMulligan.Plugin.Config
         public int ArchetypeIndexTtlMinutes { get; set; } = 180;
         public string Locale { get; set; } = "en";
         public string LocalizationDir { get; set; } = "";
+        public string PinnedDeckShortId { get; set; } = "";
+        public string PinnedDeckSignature { get; set; } = "";
+        public string PinnedDeckUrlTemplate { get; set; } =
+            "https://hsreplay.net/analytics/query/single_deck_mulligan_guide_v2/?deck_id={shortId}&GameType={format}&RankRange={rank}";
+        public bool OnlyShowForPinnedDeck { get; set; } = true;
 
         [JsonIgnore]
         public static string SettingsPath => Path.Combine(

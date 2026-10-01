@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using HstMulligan.Plugin.Bindings;
 using Microsoft.Win32;
 
 namespace HstMulligan.Plugin.Config
@@ -32,6 +33,10 @@ namespace HstMulligan.Plugin.Config
             OpacitySlider.Value = _settings.OverlayOpacity;
             ScaleSlider.Value = _settings.OverlayScale;
             DetailsBox.IsChecked = _settings.ShowDetailsPanel;
+            OnlyPinnedBox.IsChecked = _settings.OnlyShowForPinnedDeck;
+            PinnedShortIdBox.Text = _settings.PinnedDeckShortId ?? "";
+            PinnedUrlBox.Text = _settings.PinnedDeckUrlTemplate ?? "";
+            PinnedSigBox.Text = _settings.PinnedDeckSignature ?? "";
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -48,9 +53,34 @@ namespace HstMulligan.Plugin.Config
             _settings.OverlayOpacity = OpacitySlider.Value;
             _settings.OverlayScale = ScaleSlider.Value;
             _settings.ShowDetailsPanel = DetailsBox.IsChecked == true;
+            _settings.OnlyShowForPinnedDeck = OnlyPinnedBox.IsChecked == true;
+            _settings.PinnedDeckShortId = (PinnedShortIdBox.Text ?? "").Trim();
+            _settings.PinnedDeckUrlTemplate = (PinnedUrlBox.Text ?? "").Trim();
+            _settings.PinnedDeckSignature = (PinnedSigBox.Text ?? "").Trim();
             _settings.Save();
             Saved?.Invoke(this, EventArgs.Empty);
             Close();
+        }
+
+        private void PinCurrentDeckButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var adapter = new HearthstoneMirrorAdapter();
+                var signature = adapter.ReadActiveDeckSignature();
+                if (string.IsNullOrEmpty(signature))
+                {
+                    MessageBox.Show(this,
+                        "Could not read an active deck. Make sure a deck is selected in HDT first.",
+                        "Pin current deck");
+                    return;
+                }
+                PinnedSigBox.Text = signature;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Pin failed: " + ex.Message, "Pin current deck");
+            }
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();

@@ -39,20 +39,26 @@ namespace HstMulligan.Plugin.Bindings
                 return MulliganContext.Unknown;
             }
             string archetype = null;
+            string signature = null;
             try
             {
                 var heroClass = _adapter.ReadActiveDeckHeroClass();
                 var dbfIds = _adapter.ReadActiveDeckDbfIds();
-                if (heroClass != OpponentClass.Unknown && dbfIds.Count > 0)
-                    archetype = _archetypeIndex.Resolve(heroClass, dbfIds);
+                if (dbfIds.Count > 0)
+                {
+                    signature = HstMulligan.Core.Abstractions.Signature.Compute(dbfIds);
+                    if (heroClass != OpponentClass.Unknown)
+                        archetype = _archetypeIndex.Resolve(heroClass, dbfIds);
+                }
             }
             catch (System.Exception ex) { _log.Warn("archetype resolve failed", ex); }
-            if (archetype == null) return baseCtx;
+            if (archetype == null && signature == null) return baseCtx;
             return new MulliganContext(
                 baseCtx.Format, baseCtx.Opponent, baseCtx.RankBracket,
                 baseCtx.DeckCode, baseCtx.HasCoin,
                 archetypeId: archetype,
-                overrideOpponent: baseCtx.OverrideOpponent);
+                overrideOpponent: baseCtx.OverrideOpponent,
+                activeDeckSignature: signature);
         }
 
         public IReadOnlyList<MulliganCard> ReadMulliganHand()
