@@ -54,8 +54,9 @@ namespace HstMulligan.Plugin.Bindings
             {
                 var game = HdtCore.Game;
                 var opp = HstMulligan.Core.Models.OpponentClass.Unknown;
-                if (game?.Opponent?.Class != null)
-                    opp = OpponentClassExtensions.FromWireString(game.Opponent.Class.ToUpperInvariant());
+                var oppClass = game?.Opponent?.OriginalClass;
+                if (!string.IsNullOrEmpty(oppClass))
+                    opp = OpponentClassExtensions.FromWireString(oppClass.ToUpperInvariant());
                 var format = MapFormat(game?.CurrentFormat);
                 var hasCoin = game?.Player?.HasCoin ?? false;
                 var deckCode = ReadActiveDeckCode();
@@ -95,16 +96,15 @@ namespace HstMulligan.Plugin.Bindings
             return result;
         }
 
-        private static HstMulligan.Core.Models.FormatType MapFormat(HearthDb.Enums.FormatType? f)
+        private static HstMulligan.Core.Models.FormatType MapFormat(Hearthstone_Deck_Tracker.Enums.Format? f)
         {
-            switch (f)
-            {
-                case HearthDb.Enums.FormatType.FT_STANDARD: return HstMulligan.Core.Models.FormatType.Standard;
-                case HearthDb.Enums.FormatType.FT_WILD:     return HstMulligan.Core.Models.FormatType.Wild;
-                case HearthDb.Enums.FormatType.FT_TWIST:    return HstMulligan.Core.Models.FormatType.Twist;
-                case HearthDb.Enums.FormatType.FT_CLASSIC:  return HstMulligan.Core.Models.FormatType.Classic;
-                default: return HstMulligan.Core.Models.FormatType.Unknown;
-            }
+            if (!f.HasValue) return HstMulligan.Core.Models.FormatType.Unknown;
+            var name = f.Value.ToString().ToUpperInvariant();
+            if (name.Contains("STANDARD")) return HstMulligan.Core.Models.FormatType.Standard;
+            if (name.Contains("WILD"))     return HstMulligan.Core.Models.FormatType.Wild;
+            if (name.Contains("TWIST"))    return HstMulligan.Core.Models.FormatType.Twist;
+            if (name.Contains("CLASSIC"))  return HstMulligan.Core.Models.FormatType.Classic;
+            return HstMulligan.Core.Models.FormatType.Unknown;
         }
 
         private static string ReadActiveDeckCode()
@@ -161,11 +161,26 @@ namespace HstMulligan.Plugin.Bindings
             try
             {
                 if (matchInfo?.LocalPlayer == null) return RankBracket.AllRanks;
-                int? star = matchInfo.LocalPlayer.StarLevel;
-                int? legend = matchInfo.LocalPlayer.LegendRank;
+                int? star = TryGetInt(matchInfo.LocalPlayer, "StarLevel");
+                int? legend = TryGetInt(matchInfo.LocalPlayer, "LegendRank");
+                if (!star.HasValue && !legend.HasValue) return RankBracket.AllRanks;
                 return RankBracketExtensions.FromStars(star, legend);
             }
             catch { return RankBracket.AllRanks; }
+        }
+
+        private static int? TryGetInt(object instance, string propertyName)
+        {
+            if (instance == null) return null;
+            try
+            {
+                var prop = instance.GetType().GetProperty(propertyName);
+                if (prop == null) return null;
+                var value = prop.GetValue(instance);
+                if (value == null) return null;
+                return System.Convert.ToInt32(value);
+            }
+            catch { return null; }
         }
     }
 }
