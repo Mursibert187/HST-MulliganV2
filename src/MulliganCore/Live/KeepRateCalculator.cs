@@ -38,7 +38,8 @@ namespace HstMulligan.Core.Live
                     DecisionGrade.Unknown, ctx.Opponent, scopedByDeck: false);
             }
 
-            var sample = stats.Resolve(ctx.Opponent, ctx.DeckCode);
+            var effectiveOpponent = ctx.EffectiveOpponent;
+            var sample = stats.Resolve(effectiveOpponent, ctx.DeckCode, ctx.ArchetypeId);
             var scopedByDeck = !string.IsNullOrEmpty(ctx.DeckCode)
                 && stats.ByDeck.TryGetValue(ctx.DeckCode, out var deckSample)
                 && deckSample.HasData;

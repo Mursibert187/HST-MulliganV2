@@ -23,6 +23,7 @@ namespace HstMulligan.Core.Live
         private IReadOnlyDictionary<int, bool> _tossFlags;
         private MulliganContext _context;
         private MulliganDataset _dataset;
+        private OpponentClass? _opponentOverride;
         private bool _phaseOpen;
 
         public AdviceEngine(
@@ -40,6 +41,7 @@ namespace HstMulligan.Core.Live
             _subs.Add(_bus.Subscribe<MulliganHandChangedEvent>(OnHand));
             _subs.Add(_bus.Subscribe<MulliganContextChangedEvent>(OnContext));
             _subs.Add(_bus.Subscribe<DatasetLoadedEvent>(OnDataset));
+            _subs.Add(_bus.Subscribe<OpponentOverrideChangedEvent>(OnOverride));
         }
 
         public void Dispose()
@@ -81,15 +83,22 @@ namespace HstMulligan.Core.Live
             Recompute();
         }
 
+        private void OnOverride(OpponentOverrideChangedEvent evt)
+        {
+            _opponentOverride = evt.Override;
+            Recompute();
+        }
+
         private void Recompute()
         {
             if (!_phaseOpen || _cards == null || _context == null) return;
             var ds = _dataset ?? MulliganDataset.Empty;
+            var effective = _context.WithOverrideOpponent(_opponentOverride);
             var advices = new List<MulliganAdvice>(_cards.Count);
             foreach (var card in _cards)
-                advices.Add(_calc.Advise(card, ds, _context));
+                advices.Add(_calc.Advise(card, ds, effective));
             var ewr = _estimator.Estimate(advices, _tossFlags, ds.BaseWinrate);
-            _bus.Publish(new AdviceComputedEvent(advices, _tossFlags, _context, ds, ewr));
+            _bus.Publish(new AdviceComputedEvent(advices, _tossFlags, effective, ds, ewr));
         }
     }
 }

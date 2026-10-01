@@ -10,23 +10,32 @@ namespace HstMulligan.Core.Models
         public KeepRateSample Overall { get; }
         public IReadOnlyDictionary<OpponentClass, KeepRateSample> ByOpponent { get; }
         public IReadOnlyDictionary<string, KeepRateSample> ByDeck { get; }
+        public IReadOnlyDictionary<string, KeepRateSample> ByArchetype { get; }
 
         public CardStats(
             int dbfId,
             KeepRateSample overall,
             IReadOnlyDictionary<OpponentClass, KeepRateSample> byOpponent = null,
-            IReadOnlyDictionary<string, KeepRateSample> byDeck = null)
+            IReadOnlyDictionary<string, KeepRateSample> byDeck = null,
+            IReadOnlyDictionary<string, KeepRateSample> byArchetype = null)
         {
             DbfId = dbfId;
             Overall = overall;
             ByOpponent = byOpponent ?? new Dictionary<OpponentClass, KeepRateSample>();
             ByDeck = byDeck ?? new Dictionary<string, KeepRateSample>();
+            ByArchetype = byArchetype ?? new Dictionary<string, KeepRateSample>(StringComparer.Ordinal);
         }
 
-        public KeepRateSample Resolve(OpponentClass opponent, string deckCode)
+        /// <summary>
+        /// Resolution order: deck code (narrowest) → archetype slug →
+        /// opponent class → overall. The first bucket that holds data wins.
+        /// </summary>
+        public KeepRateSample Resolve(OpponentClass opponent, string deckCode, string archetypeId = null)
         {
             if (!string.IsNullOrEmpty(deckCode) && ByDeck.TryGetValue(deckCode, out var d) && d.HasData)
                 return d;
+            if (!string.IsNullOrEmpty(archetypeId) && ByArchetype.TryGetValue(archetypeId, out var a) && a.HasData)
+                return a;
             if (opponent != OpponentClass.Unknown && ByOpponent.TryGetValue(opponent, out var o) && o.HasData)
                 return o;
             return Overall;

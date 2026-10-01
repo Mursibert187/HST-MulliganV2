@@ -55,4 +55,12 @@ namespace HstMulligan.Core.Events
     }
 
     public sealed class SettingsChangedEvent { }
+
+    public sealed class OpponentOverrideChangedEvent
+    {
+        public OpponentClass? Override { get; }
+        public OpponentOverrideChangedEvent(OpponentClass? @override) { Override = @override; }
+    }
+
+    public sealed class DetailsVisibilityToggleEvent { }
 }

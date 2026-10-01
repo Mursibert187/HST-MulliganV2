@@ -20,6 +20,7 @@ namespace HstMulligan.Plugin.Config
         public double OverlayScale { get; set; } = 1.0;
         public bool ShowDetailsPanel { get; set; } = true;
         public string DetailsPanelHotkey { get; set; } = "F9";
+        public string ArchetypeIndexPath { get; set; } = "";
 
         [JsonIgnore]
         public static string SettingsPath => Path.Combine(

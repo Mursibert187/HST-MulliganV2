@@ -116,6 +116,37 @@ namespace HstMulligan.Plugin.Bindings
             catch { return null; }
         }
 
+        public IReadOnlyList<int> ReadActiveDeckDbfIds()
+        {
+            var result = new List<int>();
+            try
+            {
+                var deck = DeckList.Instance?.ActiveDeck;
+                if (deck?.Cards == null) return result;
+                foreach (var c in deck.Cards)
+                {
+                    var card = c.Id != null ? Database.GetCardFromId(c.Id) : null;
+                    if (card == null) continue;
+                    var dbf = card.DbfIf();
+                    if (dbf <= 0) continue;
+                    for (int i = 0; i < c.Count; i++) result.Add(dbf);
+                }
+            }
+            catch { }
+            return result;
+        }
+
+        public OpponentClass ReadActiveDeckHeroClass()
+        {
+            try
+            {
+                var deck = DeckList.Instance?.ActiveDeck;
+                if (deck?.Class == null) return OpponentClass.Unknown;
+                return OpponentClassExtensions.FromWireString(deck.Class.ToUpperInvariant());
+            }
+            catch { return OpponentClass.Unknown; }
+        }
+
         private static RankBracket ReadRankBracket(dynamic matchInfo)
         {
             try

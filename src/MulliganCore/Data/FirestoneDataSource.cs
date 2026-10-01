@@ -90,7 +90,13 @@ namespace HstMulligan.Core.Data
                         foreach (var p in deckMap.EnumerateObject())
                             byDeck[p.Name] = ReadSampleValue(p.Value);
                     }
-                    cards[dbf] = new CardStats(dbf, overall, byOpp, byDeck);
+                    var byArch = new Dictionary<string, KeepRateSample>(StringComparer.Ordinal);
+                    if (el.TryGetProperty("byArchetype", out var archMap) && archMap.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var p in archMap.EnumerateObject())
+                            byArch[p.Name] = ReadSampleValue(p.Value);
+                    }
+                    cards[dbf] = new CardStats(dbf, overall, byOpp, byDeck, byArch);
                 }
             }
 

@@ -15,8 +15,28 @@
                        Foreground="#B8B8B8"
                        FontFamily="Segoe UI"
                        FontSize="11"
-                       Margin="0,2,0,8"
+                       Margin="0,2,0,4"
                        Text=""/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="vs: "
+                           Foreground="#B8B8B8"
+                           FontFamily="Segoe UI"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="OppAutoButton"  Content="auto"    Margin="2,0" Padding="8,2" Click="OppAutoButton_Click"/>
+                <Button x:Name="OppOverallBtn"  Content="overall" Margin="2,0" Padding="8,2" Click="OppOverallButton_Click"/>
+                <Button x:Name="OppMageBtn"     Content="mage"    Margin="2,0" Padding="8,2" Click="OppMageButton_Click"/>
+                <Button x:Name="OppWarriorBtn"  Content="warrior" Margin="2,0" Padding="8,2" Click="OppWarriorButton_Click"/>
+                <Button x:Name="OppHunterBtn"   Content="hunter"  Margin="2,0" Padding="8,2" Click="OppHunterButton_Click"/>
+                <Button x:Name="OppDruidBtn"    Content="druid"   Margin="2,0" Padding="8,2" Click="OppDruidButton_Click"/>
+                <Button x:Name="OppPaladinBtn"  Content="paladin" Margin="2,0" Padding="8,2" Click="OppPaladinButton_Click"/>
+                <Button x:Name="OppPriestBtn"   Content="priest"  Margin="2,0" Padding="8,2" Click="OppPriestButton_Click"/>
+                <Button x:Name="OppRogueBtn"    Content="rogue"   Margin="2,0" Padding="8,2" Click="OppRogueButton_Click"/>
+                <Button x:Name="OppShamanBtn"   Content="shaman"  Margin="2,0" Padding="8,2" Click="OppShamanButton_Click"/>
+                <Button x:Name="OppWarlockBtn"  Content="warlock" Margin="2,0" Padding="8,2" Click="OppWarlockButton_Click"/>
+                <Button x:Name="OppDemonBtn"    Content="dh"      Margin="2,0" Padding="8,2" Click="OppDemonHunterButton_Click"/>
+                <Button x:Name="OppDkBtn"       Content="dk"      Margin="2,0" Padding="8,2" Click="OppDeathKnightButton_Click"/>
+            </StackPanel>
             <ItemsControl x:Name="Rows"/>
             <Border Background="#1A2230" CornerRadius="6" Margin="0,8,0,0" Padding="8,6">
                 <StackPanel Orientation="Horizontal">

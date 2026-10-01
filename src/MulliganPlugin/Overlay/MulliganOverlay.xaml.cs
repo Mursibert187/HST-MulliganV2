@@ -28,6 +28,7 @@ namespace HstMulligan.Plugin.Overlay
             _bus = bus;
             _log = log ?? NullLogger.Instance;
             _details = new DetailsPanel();
+            _details.AttachEventBus(_bus);
             DetailsDock.Children.Add(_details);
             _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
             Opacity = _settings.OverlayOpacity;

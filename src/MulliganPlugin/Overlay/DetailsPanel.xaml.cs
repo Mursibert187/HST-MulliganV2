@@ -4,6 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using HstMulligan.Core.Abstractions;
+using HstMulligan.Core.Events;
+using HstMulligan.Core.Live;
 using HstMulligan.Core.Models;
 using HstMulligan.Core.Overlay;
 
@@ -11,10 +14,14 @@ namespace HstMulligan.Plugin.Overlay
 {
     public partial class DetailsPanel : UserControl
     {
+        private IEventBus _bus;
+
         public DetailsPanel()
         {
             InitializeComponent();
         }
+
+        public void AttachEventBus(IEventBus bus) { _bus = bus; }
 
         public void Update(
             IReadOnlyList<MulliganAdvice> advices,
@@ -39,15 +46,35 @@ namespace HstMulligan.Plugin.Overlay
                 : "awaiting data";
         }
 
+        private void OppAutoButton_Click(object sender, RoutedEventArgs e)    => PublishOverride(null);
+        private void OppOverallButton_Click(object sender, RoutedEventArgs e) => PublishOverride(OpponentClass.Unknown);
+        private void OppMageButton_Click(object sender, RoutedEventArgs e)        => PublishOverride(OpponentClass.Mage);
+        private void OppWarriorButton_Click(object sender, RoutedEventArgs e)     => PublishOverride(OpponentClass.Warrior);
+        private void OppHunterButton_Click(object sender, RoutedEventArgs e)      => PublishOverride(OpponentClass.Hunter);
+        private void OppDruidButton_Click(object sender, RoutedEventArgs e)       => PublishOverride(OpponentClass.Druid);
+        private void OppPaladinButton_Click(object sender, RoutedEventArgs e)     => PublishOverride(OpponentClass.Paladin);
+        private void OppPriestButton_Click(object sender, RoutedEventArgs e)      => PublishOverride(OpponentClass.Priest);
+        private void OppRogueButton_Click(object sender, RoutedEventArgs e)       => PublishOverride(OpponentClass.Rogue);
+        private void OppShamanButton_Click(object sender, RoutedEventArgs e)      => PublishOverride(OpponentClass.Shaman);
+        private void OppWarlockButton_Click(object sender, RoutedEventArgs e)     => PublishOverride(OpponentClass.Warlock);
+        private void OppDemonHunterButton_Click(object sender, RoutedEventArgs e) => PublishOverride(OpponentClass.DemonHunter);
+        private void OppDeathKnightButton_Click(object sender, RoutedEventArgs e) => PublishOverride(OpponentClass.DeathKnight);
+
+        private void PublishOverride(OpponentClass? oc) =>
+            _bus?.Publish(new OpponentOverrideChangedEvent(oc));
+
         private static string HeaderLine(MulliganContext ctx, MulliganDataset ds)
         {
             if (ctx == null) ctx = MulliganContext.Unknown;
             if (ds == null) ds = MulliganDataset.Empty;
             var sb = new StringBuilder();
-            sb.Append("vs ").Append(ctx.Opponent == OpponentClass.Unknown ? "any" : ctx.Opponent.ToString().ToLowerInvariant());
+            var effective = ctx.EffectiveOpponent;
+            sb.Append("vs ").Append(effective == OpponentClass.Unknown ? "any" : effective.ToString().ToLowerInvariant());
+            if (ctx.OverrideOpponent.HasValue) sb.Append(" (override)");
             sb.Append(" · ").Append(ctx.Format == FormatType.Unknown ? "any format" : ctx.Format.ToString().ToLowerInvariant());
             sb.Append(" · ").Append(ctx.RankBracket.ToWireString());
-            if (!string.IsNullOrEmpty(ctx.DeckCode)) sb.Append(" · deck-scoped");
+            if (!string.IsNullOrEmpty(ctx.ArchetypeId)) sb.Append(" · ").Append(ctx.ArchetypeId);
+            else if (!string.IsNullOrEmpty(ctx.DeckCode)) sb.Append(" · deck-scoped");
             if (ds.GeneratedAt.Year > 2000) sb.Append("  (").Append(ds.GeneratedAt.ToLocalTime().ToString("yyyy-MM-dd")).Append(")");
             return sb.ToString();
         }

@@ -49,7 +49,10 @@ namespace HstMulligan.Plugin
 
             _bus = new EventBus(_logger);
             _source = SourcePipelineFactory.Build(_settings, _http);
-            _gameClient = new HdtGameClient(_logger);
+            IArchetypeIndex archetypeIndex = string.IsNullOrEmpty(_settings.ArchetypeIndexPath)
+                ? (IArchetypeIndex)NullArchetypeIndex.Instance
+                : new JsonArchetypeIndex(_settings.ArchetypeIndexPath);
+            _gameClient = new HdtGameClient(archetypeIndex, _logger);
             _calc = new KeepRateCalculator(
                 new ConfidenceScorer(_settings.ConfidenceSaturationSamples));
             _engine = new AdviceEngine(_bus, _calc, new ExpectedWinrateEstimator(), _logger);
