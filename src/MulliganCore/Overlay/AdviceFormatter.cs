@@ -40,5 +40,18 @@ namespace HstMulligan.Core.Overlay
             return string.Format(CultureInfo.InvariantCulture,
                 "n={0} · {1}", s.Total, basis);
         }
+
+        public static string LowSampleGlyph(double confidence)
+        {
+            if (confidence < 0.25) return "?";
+            if (confidence < 0.45) return "!";
+            return "";
+        }
+
+        public static string ExpectedWinrateLabel(double expectedWinrate)
+        {
+            if (double.IsNaN(expectedWinrate)) return "expected: —";
+            return "expected: " + (expectedWinrate * 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+        }
     }
 }

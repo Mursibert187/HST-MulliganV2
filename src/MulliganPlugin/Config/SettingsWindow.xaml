@@ -51,10 +51,14 @@
                 Minimum="0.6" Maximum="1.6" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
         <TextBlock Text="Show details panel" Grid.Row="9" Grid.Column="0" Margin="0,6,0,6"/>
         <CheckBox x:Name="DetailsBox" Grid.Row="9" Grid.Column="1" Margin="0,6,0,6" VerticalAlignment="Center"/>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+        <StackPanel Orientation="Horizontal"
                     Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,12,0,0">
-            <Button x:Name="CancelButton" Content="Cancel" Width="90" Margin="0,0,10,0" Click="CancelButton_Click"/>
-            <Button x:Name="SaveButton" Content="Save" Width="90" Click="SaveButton_Click"/>
+            <Button x:Name="ImportButton" Content="Import JSON…" Width="120" Margin="0,0,8,0" Click="ImportButton_Click"/>
+            <Button x:Name="ExportButton" Content="Export JSON…" Width="120" Margin="0,0,8,0" Click="ExportButton_Click"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="20,0,0,0">
+                <Button x:Name="CancelButton" Content="Cancel" Width="90" Margin="0,0,10,0" Click="CancelButton_Click"/>
+                <Button x:Name="SaveButton" Content="Save" Width="90" Click="SaveButton_Click"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

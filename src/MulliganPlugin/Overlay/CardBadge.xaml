@@ -21,6 +21,20 @@
                        Opacity="0.9"
                        TextAlignment="Center"
                        Text=""/>
+            <TextBlock x:Name="LiftLabel"
+                       Foreground="#8EC8A0"
+                       FontFamily="Segoe UI"
+                       FontSize="9"
+                       TextAlignment="Center"
+                       Text=""/>
         </StackPanel>
+        <TextBlock x:Name="LowSampleGlyph"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Foreground="#F6C97E"
+                   FontFamily="Segoe UI"
+                   FontWeight="Bold"
+                   Margin="4,2,0,0"
+                   Text=""/>
     </Grid>
 </UserControl>

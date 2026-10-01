@@ -1,7 +1,10 @@
 using System;
 using System.Globalization;
+using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 
 namespace HstMulligan.Plugin.Config
 {
@@ -51,6 +54,62 @@ namespace HstMulligan.Plugin.Config
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void ImportButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Filter = "JSON (*.json)|*.json|All files (*.*)|*.*",
+                Title = "Import settings",
+            };
+            if (dlg.ShowDialog(this) != true) return;
+            try
+            {
+                var json = File.ReadAllText(dlg.FileName);
+                var loaded = JsonSerializer.Deserialize<PluginSettings>(json);
+                if (loaded == null)
+                {
+                    MessageBox.Show(this, "No settings found in file.", "Import");
+                    return;
+                }
+                _settings.Enabled = loaded.Enabled;
+                _settings.PrimarySource = loaded.PrimarySource;
+                _settings.FirestoneUrlTemplate = loaded.FirestoneUrlTemplate;
+                _settings.HsReplayUrlTemplate = loaded.HsReplayUrlTemplate;
+                _settings.OfflineDatasetPath = loaded.OfflineDatasetPath;
+                _settings.CacheTtlMinutes = loaded.CacheTtlMinutes;
+                _settings.ConfidenceSaturationSamples = loaded.ConfidenceSaturationSamples;
+                _settings.OverlayOpacity = loaded.OverlayOpacity;
+                _settings.OverlayScale = loaded.OverlayScale;
+                _settings.ShowDetailsPanel = loaded.ShowDetailsPanel;
+                _settings.DetailsPanelHotkey = loaded.DetailsPanelHotkey;
+                LoadIntoControls();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Import failed: " + ex.Message, "Import");
+            }
+        }
+
+        private void ExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog
+            {
+                Filter = "JSON (*.json)|*.json",
+                Title = "Export settings",
+                FileName = "mulliganv2-settings.json",
+            };
+            if (dlg.ShowDialog(this) != true) return;
+            try
+            {
+                var opts = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(_settings, opts));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Export failed: " + ex.Message, "Export");
+            }
+        }
 
         private static void SelectComboItem(ComboBox combo, string value)
         {

@@ -4,7 +4,7 @@
              Focusable="False" IsHitTestVisible="True"
              Background="#DD0C1018">
     <Border Padding="10" CornerRadius="8" BorderBrush="#33FFFFFF" BorderThickness="1">
-        <StackPanel Orientation="Vertical" MinWidth="360">
+        <StackPanel Orientation="Vertical" MinWidth="420">
             <TextBlock x:Name="HeaderText"
                        Foreground="#F0F0F0"
                        FontFamily="Segoe UI"
@@ -18,6 +18,23 @@
                        Margin="0,2,0,8"
                        Text=""/>
             <ItemsControl x:Name="Rows"/>
+            <Border Background="#1A2230" CornerRadius="6" Margin="0,8,0,0" Padding="8,6">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ExpectedLabel"
+                               Foreground="#F0F0F0"
+                               FontFamily="Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="12"
+                               Text="expected: —"/>
+                    <TextBlock x:Name="OverallSample"
+                               Foreground="#90A0B0"
+                               FontFamily="Segoe UI"
+                               FontSize="11"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               Text=""/>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </Border>
 </UserControl>
