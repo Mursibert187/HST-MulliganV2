@@ -41,6 +41,30 @@ namespace HstMulligan.Core.Tests
         }
 
         [Fact]
+        public void FirestoneEnvelopeReadsDrawnWinrateAndCoinBuckets()
+        {
+            var json = @"{
+              ""format"": ""standard"",
+              ""cards"": [
+                {
+                  ""dbfId"": 55,
+                  ""overall"": {""kept"": 500, ""mulliganed"": 500, ""keptWinrate"": 0.55, ""drawnWinrate"": 0.45},
+                  ""onPlay"": {""kept"": 150, ""mulliganed"": 350, ""keptWinrate"": 0.50, ""drawnWinrate"": 0.44},
+                  ""onCoin"": {""kept"": 350, ""mulliganed"": 150, ""keptWinrate"": 0.58, ""drawnWinrate"": 0.46}
+                }
+              ]
+            }";
+            var q = new MulliganQuery(FormatType.Standard, RankBracket.AllRanks);
+            var ds = FirestoneDataSource.Parse(S(json), q);
+            Assert.True(ds.TryGet(55, out var stats));
+            Assert.Equal(0.45, stats.Overall.DrawnWinrate, precision: 3);
+            Assert.True(stats.OnPlay.HasData);
+            Assert.True(stats.OnCoin.HasData);
+            Assert.Equal(500, stats.OnCoin.Total);
+            Assert.Equal(0.46, stats.OnCoin.DrawnWinrate, precision: 3);
+        }
+
+        [Fact]
         public void HsReplayEnvelopePercentsConvertToFractions()
         {
             var json = @"{

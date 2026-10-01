@@ -58,5 +58,25 @@ namespace HstMulligan.Core.Overlay
             if (double.IsNaN(expectedWinrate)) return prefix + "—";
             return prefix + (expectedWinrate * 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
         }
+
+        public static string KeptWinrateLabel(double keptWinrate)
+        {
+            if (double.IsNaN(keptWinrate)) return T("kept_wr.na", "kept —");
+            return T("kept_wr.prefix", "kept ")
+                + (keptWinrate * 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+        }
+
+        public static string DrawnWinrateLabel(double drawnWinrate)
+        {
+            if (double.IsNaN(drawnWinrate)) return T("drawn_wr.na", "drawn —");
+            return T("drawn_wr.prefix", "drawn ")
+                + (drawnWinrate * 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+        }
+
+        public static string CoinStateLabel(bool hasCoin, bool scopedByCoinState)
+        {
+            if (!scopedByCoinState) return "";
+            return hasCoin ? T("coin.on_coin", "on coin") : T("coin.on_play", "on play");
+        }
     }
 }

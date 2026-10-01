@@ -115,26 +115,49 @@ namespace HstMulligan.Core.Data
         {
             using (var doc = JsonDocument.Parse(json))
             {
-                var byDbf = new Dictionary<int, (KeepRateSample overall, Dictionary<OpponentClass, KeepRateSample> byOpp)>();
+                var byDbf = new Dictionary<int, Bucket>();
                 WalkForRows(doc.RootElement, byDbf, OpponentClass.Unknown);
                 if (byDbf.Count == 0) return MulliganDataset.Empty;
                 var cards = new Dictionary<int, CardStats>(byDbf.Count);
                 foreach (var kv in byDbf)
                 {
-                    var overall = kv.Value.overall.HasData
-                        ? kv.Value.overall
-                        : AggregateOverOpponents(kv.Value.byOpp);
-                    cards[kv.Key] = new CardStats(kv.Key, overall, kv.Value.byOpp);
+                    var overall = kv.Value.Overall.HasData
+                        ? kv.Value.Overall
+                        : AggregateOverOpponents(kv.Value.ByOpp);
+                    cards[kv.Key] = new CardStats(kv.Key, overall, kv.Value.ByOpp,
+                        byDeck: null, byArchetype: null,
+                        onPlay: kv.Value.OnPlay.HasData ? kv.Value.OnPlay : (KeepRateSample?)null,
+                        onCoin: kv.Value.OnCoin.HasData ? kv.Value.OnCoin : (KeepRateSample?)null);
                 }
                 return new MulliganDataset(query.Format, query.RankBracket,
                     DateTimeOffset.UtcNow, 0.5, cards);
             }
         }
 
+        private enum CoinKind { None, OnPlay, OnCoin }
+
+        private sealed class Bucket
+        {
+            public KeepRateSample Overall = KeepRateSample.Empty;
+            public KeepRateSample OnPlay = KeepRateSample.Empty;
+            public KeepRateSample OnCoin = KeepRateSample.Empty;
+            public Dictionary<OpponentClass, KeepRateSample> ByOpp = new Dictionary<OpponentClass, KeepRateSample>();
+        }
+
+        private static CoinKind CoinKindOf(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return CoinKind.None;
+            var k = key.ToUpperInvariant();
+            if (k == "ON_PLAY" || k == "ONPLAY" || k == "PLAY" || k == "NO_COIN" || k == "FIRST") return CoinKind.OnPlay;
+            if (k == "ON_COIN" || k == "ONCOIN" || k == "COIN" || k == "HAS_COIN" || k == "SECOND") return CoinKind.OnCoin;
+            return CoinKind.None;
+        }
+
         private static void WalkForRows(
             JsonElement el,
-            Dictionary<int, (KeepRateSample overall, Dictionary<OpponentClass, KeepRateSample> byOpp)> byDbf,
-            OpponentClass currentOpponent)
+            Dictionary<int, Bucket> byDbf,
+            OpponentClass currentOpponent,
+            CoinKind currentCoin = CoinKind.None)
         {
             switch (el.ValueKind)
             {
@@ -142,24 +165,29 @@ namespace HstMulligan.Core.Data
                     if (TryExtractRow(el, out var dbf, out var sample))
                     {
                         if (!byDbf.TryGetValue(dbf, out var entry))
-                            byDbf[dbf] = entry = (KeepRateSample.Empty, new Dictionary<OpponentClass, KeepRateSample>());
-                        if (currentOpponent == OpponentClass.Unknown)
-                            byDbf[dbf] = (sample, entry.byOpp);
+                            byDbf[dbf] = entry = new Bucket();
+                        if (currentCoin == CoinKind.OnPlay)      entry.OnPlay = sample;
+                        else if (currentCoin == CoinKind.OnCoin) entry.OnCoin = sample;
+                        else if (currentOpponent == OpponentClass.Unknown)
+                            entry.Overall = sample;
                         else
-                            entry.byOpp[currentOpponent] = sample;
+                            entry.ByOpp[currentOpponent] = sample;
                         return;
                     }
                     foreach (var p in el.EnumerateObject())
                     {
-                        var next = currentOpponent;
+                        var nextOpp = currentOpponent;
+                        var nextCoin = currentCoin;
                         var mapped = OpponentClassExtensions.FromWireString(p.Name);
-                        if (mapped != OpponentClass.Unknown) next = mapped;
-                        WalkForRows(p.Value, byDbf, next);
+                        if (mapped != OpponentClass.Unknown) nextOpp = mapped;
+                        var coin = CoinKindOf(p.Name);
+                        if (coin != CoinKind.None) nextCoin = coin;
+                        WalkForRows(p.Value, byDbf, nextOpp, nextCoin);
                     }
                     break;
                 case JsonValueKind.Array:
                     foreach (var item in el.EnumerateArray())
-                        WalkForRows(item, byDbf, currentOpponent);
+                        WalkForRows(item, byDbf, currentOpponent, currentCoin);
                     break;
             }
         }
@@ -188,12 +216,19 @@ namespace HstMulligan.Core.Data
                 !TryReadDouble(obj, "kept_winrate", out keptWr))
                 keptWr = double.NaN;
 
+            if (!TryReadDouble(obj, "winrate_when_drawn", out var drawnWr) &&
+                !TryReadDouble(obj, "winrateWhenDrawn", out drawnWr) &&
+                !TryReadDouble(obj, "drawn_winrate", out drawnWr) &&
+                !TryReadDouble(obj, "drawnWinrate", out drawnWr))
+                drawnWr = double.NaN;
+
             if (total <= 0 || double.IsNaN(keptPct)) return false;
             var keptFrac = keptPct > 1.0 ? keptPct / 100.0 : keptPct;
             var kept = (int)Math.Round(total * keptFrac);
             var mull = total - kept;
-            var wr = double.IsNaN(keptWr) ? double.NaN : (keptWr > 1.0 ? keptWr / 100.0 : keptWr);
-            sample = new KeepRateSample(kept, mull, wr);
+            var kwr = double.IsNaN(keptWr) ? double.NaN : (keptWr > 1.0 ? keptWr / 100.0 : keptWr);
+            var dwr = double.IsNaN(drawnWr) ? double.NaN : (drawnWr > 1.0 ? drawnWr / 100.0 : drawnWr);
+            sample = new KeepRateSample(kept, mull, kwr, dwr);
             return true;
         }
 

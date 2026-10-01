@@ -98,7 +98,15 @@ namespace HstMulligan.Core.Data
                         foreach (var p in archMap.EnumerateObject())
                             byArch[p.Name] = ReadSampleValue(p.Value);
                     }
-                    cards[dbf] = new CardStats(dbf, overall, byOpp, byDeck, byArch);
+                    KeepRateSample? onPlay = null, onCoin = null;
+                    if (el.TryGetProperty("onPlay", out var opEl)) onPlay = ReadSampleValue(opEl);
+                    if (el.TryGetProperty("onCoin", out var ocEl)) onCoin = ReadSampleValue(ocEl);
+                    if (el.TryGetProperty("byCoinState", out var coinMap) && coinMap.ValueKind == JsonValueKind.Object)
+                    {
+                        if (coinMap.TryGetProperty("play", out var pEl)) onPlay = ReadSampleValue(pEl);
+                        if (coinMap.TryGetProperty("coin", out var cEl)) onCoin = ReadSampleValue(cEl);
+                    }
+                    cards[dbf] = new CardStats(dbf, overall, byOpp, byDeck, byArch, onPlay, onCoin);
                 }
             }
 
@@ -116,8 +124,9 @@ namespace HstMulligan.Core.Data
             if (el.ValueKind != JsonValueKind.Object) return KeepRateSample.Empty;
             int kept = ReadInt(el, "kept");
             int mull = ReadInt(el, "mulliganed");
-            double wr = ReadDouble(el, "keptWinrate", double.NaN);
-            return new KeepRateSample(kept, mull, wr);
+            double kwr = ReadDouble(el, "keptWinrate", double.NaN);
+            double dwr = ReadDouble(el, "drawnWinrate", double.NaN);
+            return new KeepRateSample(kept, mull, kwr, dwr);
         }
 
         private static int ReadInt(JsonElement el, string name)

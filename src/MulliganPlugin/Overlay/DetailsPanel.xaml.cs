@@ -136,6 +136,9 @@ namespace HstMulligan.Plugin.Overlay
             if (ctx.OverrideOpponent.HasValue) sb.Append(" (override)");
             sb.Append(" · ").Append(ctx.Format == FormatType.Unknown ? "any format" : ctx.Format.ToString().ToLowerInvariant());
             sb.Append(" · ").Append(ctx.RankBracket.ToWireString());
+            sb.Append(" · ").Append(ctx.HasCoin
+                ? HstMulligan.Core.Localization.Localization.Current.T("coin.on_coin", "on coin")
+                : HstMulligan.Core.Localization.Localization.Current.T("coin.on_play", "on play"));
             if (!string.IsNullOrEmpty(ctx.ArchetypeId)) sb.Append(" · ").Append(ctx.ArchetypeId);
             else if (!string.IsNullOrEmpty(ctx.DeckCode)) sb.Append(" · deck-scoped");
             if (ds.GeneratedAt.Year > 2000) sb.Append("  (").Append(ds.GeneratedAt.ToLocalTime().ToString("yyyy-MM-dd")).Append(")");
@@ -150,10 +153,11 @@ namespace HstMulligan.Plugin.Overlay
                 Opacity = tossed ? 0.5 : 1.0,
             };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(78) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var ringColor = ConfidenceColors.ForAdvice(advice.Grade, advice.Confidence);
@@ -187,7 +191,16 @@ namespace HstMulligan.Plugin.Overlay
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(8, 0, 0, 0),
             };
-            var lift = new TextBlock
+            var drawn = new TextBlock
+            {
+                Text = AdviceFormatter.DrawnWinrateLabel(advice.DrawnWinrate),
+                Foreground = new SolidColorBrush(Color.FromRgb(0xA8, 0xB4, 0xC2)),
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+            };
+            var impact = new TextBlock
             {
                 Text = advice.HasData && !double.IsNaN(advice.Sample.KeptWinrate)
                     ? AdviceFormatter.LiftLabel(advice.Lift)
@@ -196,13 +209,15 @@ namespace HstMulligan.Plugin.Overlay
                     ? new SolidColorBrush(Color.FromRgb(0x8E, 0xC8, 0xA0))
                     : new SolidColorBrush(Color.FromRgb(0xDF, 0x9C, 0x72)),
                 FontFamily = new FontFamily("Segoe UI"),
+                FontWeight = FontWeights.SemiBold,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(8, 0, 0, 0),
             };
             var note = new TextBlock
             {
-                Text = AdviceFormatter.SampleFootnote(advice.Sample, advice.ScopedByDeck),
+                Text = AdviceFormatter.SampleFootnote(advice.Sample, advice.ScopedByDeck)
+                    + (advice.ScopedByCoinState ? " · " + AdviceFormatter.CoinStateLabel(true, true) : ""),
                 Foreground = new SolidColorBrush(Color.FromRgb(0x90, 0x90, 0x90)),
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 10,
@@ -213,13 +228,15 @@ namespace HstMulligan.Plugin.Overlay
             Grid.SetColumn(pct, 1);
             Grid.SetColumn(bar, 2);
             Grid.SetColumn(grade, 3);
-            Grid.SetColumn(lift, 4);
-            Grid.SetColumn(note, 5);
+            Grid.SetColumn(drawn, 4);
+            Grid.SetColumn(impact, 5);
+            Grid.SetColumn(note, 6);
             g.Children.Add(name);
             g.Children.Add(pct);
             g.Children.Add(bar);
             g.Children.Add(grade);
-            g.Children.Add(lift);
+            g.Children.Add(drawn);
+            g.Children.Add(impact);
             g.Children.Add(note);
             return g;
         }

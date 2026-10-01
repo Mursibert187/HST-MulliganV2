@@ -70,6 +70,44 @@ namespace HstMulligan.Core.Tests
         }
 
         [Fact]
+        public void CoinStateBucketWinsOverOpponentBucket()
+        {
+            var byOpp = new Dictionary<OpponentClass, KeepRateSample>
+            {
+                [OpponentClass.Mage] = new KeepRateSample(30, 70, 0.42),
+            };
+            var onCoin = new KeepRateSample(180, 20, 0.60, 0.50);
+            var stats = new CardStats(99, new KeepRateSample(500, 500, 0.50), byOpp,
+                byDeck: null, byArchetype: null,
+                onPlay: new KeepRateSample(80, 120, 0.47),
+                onCoin: onCoin);
+            var ctx = new MulliganContext(FormatType.Standard, OpponentClass.Mage,
+                RankBracket.AllRanks, deckCode: null, hasCoin: true);
+            var ds = new MulliganDataset(FormatType.Standard, RankBracket.AllRanks,
+                System.DateTimeOffset.UtcNow, 0.5,
+                new Dictionary<int, CardStats> { [99] = stats });
+            var advice = new KeepRateCalculator().Advise(new MulliganCard(99, "T", "T", 2, 0), ds, ctx);
+            Assert.True(advice.ScopedByCoinState);
+            Assert.Equal(200, advice.Sample.Total);
+            Assert.Equal(DecisionGrade.StrongKeep, advice.Grade);
+        }
+
+        [Fact]
+        public void DrawnWinrateDrivesImpactWhenPresent()
+        {
+            var sample = new KeepRateSample(100, 100, keptWinrate: 0.55, drawnWinrate: 0.40);
+            var stats = new CardStats(5, sample);
+            var ds = new MulliganDataset(FormatType.Standard, RankBracket.AllRanks,
+                System.DateTimeOffset.UtcNow, 0.52,
+                new Dictionary<int, CardStats> { [5] = stats });
+            var advice = new KeepRateCalculator().Advise(
+                new MulliganCard(5, "T", "T", 2, 0), ds, MulliganContext.Unknown);
+            Assert.Equal(0.15, advice.Lift, precision: 4);
+            Assert.Equal(0.40, advice.DrawnWinrate, precision: 4);
+            Assert.Equal(0.15, advice.KeepVsDrawDelta, precision: 4);
+        }
+
+        [Fact]
         public void FallsBackFromDeckToOpponentToOverall()
         {
             var byOpp = new Dictionary<OpponentClass, KeepRateSample>

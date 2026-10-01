@@ -39,23 +39,39 @@ namespace HstMulligan.Core.Live
             }
 
             var effectiveOpponent = ctx.EffectiveOpponent;
-            var sample = stats.Resolve(effectiveOpponent, ctx.DeckCode, ctx.ArchetypeId);
+            var sample = stats.Resolve(effectiveOpponent, ctx.DeckCode, ctx.ArchetypeId, ctx.HasCoin);
             var scopedByDeck = !string.IsNullOrEmpty(ctx.DeckCode)
                 && stats.ByDeck.TryGetValue(ctx.DeckCode, out var deckSample)
                 && deckSample.HasData;
+            var scopedByCoin =
+                (ctx.HasCoin && stats.OnCoin.HasData) ||
+                (!ctx.HasCoin && stats.OnPlay.HasData);
 
             if (!sample.HasData)
             {
                 return new MulliganAdvice(
                     card, sample, double.NaN, 0.0, 0.0,
-                    DecisionGrade.Unknown, ctx.Opponent, scopedByDeck);
+                    DecisionGrade.Unknown, ctx.Opponent, scopedByDeck,
+                    drawnWinrate: double.NaN,
+                    scopedByCoinState: scopedByCoin);
             }
 
             var keepRate = sample.KeepRate;
-            var lift = double.IsNaN(sample.KeptWinrate) ? 0.0 : sample.KeptWinrate - dataset.BaseWinrate;
+            // Prefer keep-vs-draw delta when drawn data is available; it's a
+            // more honest "impact" than keptWR - archetype-baseWR.
+            double impact;
+            if (!double.IsNaN(sample.KeptWinrate) && !double.IsNaN(sample.DrawnWinrate))
+                impact = sample.KeptWinrate - sample.DrawnWinrate;
+            else if (!double.IsNaN(sample.KeptWinrate))
+                impact = sample.KeptWinrate - dataset.BaseWinrate;
+            else
+                impact = 0.0;
             var confidence = _scorer.Score(sample.Total);
-            var grade = BucketGrade(keepRate, lift);
-            return new MulliganAdvice(card, sample, keepRate, lift, confidence, grade, ctx.Opponent, scopedByDeck);
+            var grade = BucketGrade(keepRate, impact);
+            return new MulliganAdvice(
+                card, sample, keepRate, impact, confidence, grade, ctx.Opponent, scopedByDeck,
+                drawnWinrate: sample.DrawnWinrate,
+                scopedByCoinState: scopedByCoin);
         }
 
         public DecisionGrade BucketGrade(double keepRate, double lift)

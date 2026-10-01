@@ -72,39 +72,62 @@ namespace HstMulligan.Core.Data
             }
 
             var data = series.TryGetProperty("data", out var d) ? d : series;
-            var perDbf = new Dictionary<int, (KeepRateSample overall, Dictionary<OpponentClass, KeepRateSample> byOpp)>();
+            var perDbf = new Dictionary<int, Bucket>();
 
             foreach (var opp in data.EnumerateObject())
             {
-                var oppClass = OpponentClassExtensions.FromWireString(opp.Name);
                 var arr = opp.Value;
                 if (arr.ValueKind != JsonValueKind.Array) continue;
+                var key = opp.Name;
+                var oppClass = OpponentClassExtensions.FromWireString(key);
+                var coinKind = CoinKindOf(key);
                 foreach (var row in arr.EnumerateArray())
                 {
                     if (!row.TryGetProperty("dbf_id", out var idEl)) continue;
                     var dbf = idEl.GetInt32();
                     var sample = ToSample(row);
                     if (!perDbf.TryGetValue(dbf, out var entry))
-                    {
-                        entry = (KeepRateSample.Empty, new Dictionary<OpponentClass, KeepRateSample>());
-                        perDbf[dbf] = entry;
-                    }
-                    if (opp.Name.Equals("ALL", StringComparison.OrdinalIgnoreCase))
-                        perDbf[dbf] = (sample, entry.byOpp);
+                        perDbf[dbf] = entry = new Bucket();
+                    if (coinKind == CoinKind.OnPlay)      entry.OnPlay = sample;
+                    else if (coinKind == CoinKind.OnCoin) entry.OnCoin = sample;
+                    else if (key.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+                        entry.Overall = sample;
                     else if (oppClass != OpponentClass.Unknown)
-                        entry.byOpp[oppClass] = sample;
+                        entry.ByOpp[oppClass] = sample;
                 }
             }
 
             var cards = new Dictionary<int, CardStats>();
             foreach (var kv in perDbf)
             {
-                var overall = kv.Value.overall.HasData
-                    ? kv.Value.overall
-                    : AggregateOverOpponents(kv.Value.byOpp);
-                cards[kv.Key] = new CardStats(kv.Key, overall, kv.Value.byOpp);
+                var overall = kv.Value.Overall.HasData
+                    ? kv.Value.Overall
+                    : AggregateOverOpponents(kv.Value.ByOpp);
+                cards[kv.Key] = new CardStats(kv.Key, overall, kv.Value.ByOpp,
+                    byDeck: null, byArchetype: null,
+                    onPlay: kv.Value.OnPlay.HasData ? kv.Value.OnPlay : (KeepRateSample?)null,
+                    onCoin: kv.Value.OnCoin.HasData ? kv.Value.OnCoin : (KeepRateSample?)null);
             }
             return new MulliganDataset(query.Format, query.RankBracket, generated, baseWr, cards);
+        }
+
+        private enum CoinKind { None, OnPlay, OnCoin }
+
+        private static CoinKind CoinKindOf(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return CoinKind.None;
+            var k = key.ToUpperInvariant();
+            if (k == "ON_PLAY" || k == "ONPLAY" || k == "PLAY" || k == "NO_COIN" || k == "FIRST") return CoinKind.OnPlay;
+            if (k == "ON_COIN" || k == "ONCOIN" || k == "COIN" || k == "HAS_COIN" || k == "SECOND") return CoinKind.OnCoin;
+            return CoinKind.None;
+        }
+
+        private sealed class Bucket
+        {
+            public KeepRateSample Overall = KeepRateSample.Empty;
+            public KeepRateSample OnPlay = KeepRateSample.Empty;
+            public KeepRateSample OnCoin = KeepRateSample.Empty;
+            public Dictionary<OpponentClass, KeepRateSample> ByOpp = new Dictionary<OpponentClass, KeepRateSample>();
         }
 
         private static KeepRateSample ToSample(JsonElement row)
@@ -112,12 +135,14 @@ namespace HstMulligan.Core.Data
             int sample = ReadIntFlexible(row, "sample_size");
             double keptPct = ReadDoubleFlexible(row, "kept_percent", double.NaN);
             double keptWr = ReadDoubleFlexible(row, "winrate_when_kept", double.NaN);
+            double drawnWr = ReadDoubleFlexible(row, "winrate_when_drawn", double.NaN);
             if (sample <= 0 || double.IsNaN(keptPct)) return KeepRateSample.Empty;
             var keptFrac = ToFraction(keptPct);
             int kept = (int)Math.Round(sample * keptFrac);
             int mull = sample - kept;
-            var wr = double.IsNaN(keptWr) ? double.NaN : ToFraction(keptWr);
-            return new KeepRateSample(kept, mull, wr);
+            var kwr = double.IsNaN(keptWr) ? double.NaN : ToFraction(keptWr);
+            var dwr = double.IsNaN(drawnWr) ? double.NaN : ToFraction(drawnWr);
+            return new KeepRateSample(kept, mull, kwr, dwr);
         }
 
         private static KeepRateSample AggregateOverOpponents(Dictionary<OpponentClass, KeepRateSample> byOpp)

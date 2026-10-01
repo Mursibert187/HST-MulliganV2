@@ -8,6 +8,8 @@ namespace HstMulligan.Core.Models
     {
         public int DbfId { get; }
         public KeepRateSample Overall { get; }
+        public KeepRateSample OnPlay { get; }
+        public KeepRateSample OnCoin { get; }
         public IReadOnlyDictionary<OpponentClass, KeepRateSample> ByOpponent { get; }
         public IReadOnlyDictionary<string, KeepRateSample> ByDeck { get; }
         public IReadOnlyDictionary<string, KeepRateSample> ByArchetype { get; }
@@ -17,25 +19,31 @@ namespace HstMulligan.Core.Models
             KeepRateSample overall,
             IReadOnlyDictionary<OpponentClass, KeepRateSample> byOpponent = null,
             IReadOnlyDictionary<string, KeepRateSample> byDeck = null,
-            IReadOnlyDictionary<string, KeepRateSample> byArchetype = null)
+            IReadOnlyDictionary<string, KeepRateSample> byArchetype = null,
+            KeepRateSample? onPlay = null,
+            KeepRateSample? onCoin = null)
         {
             DbfId = dbfId;
             Overall = overall;
+            OnPlay = onPlay ?? KeepRateSample.Empty;
+            OnCoin = onCoin ?? KeepRateSample.Empty;
             ByOpponent = byOpponent ?? new Dictionary<OpponentClass, KeepRateSample>();
             ByDeck = byDeck ?? new Dictionary<string, KeepRateSample>();
             ByArchetype = byArchetype ?? new Dictionary<string, KeepRateSample>(StringComparer.Ordinal);
         }
 
         /// <summary>
-        /// Resolution order: deck code (narrowest) → archetype slug →
-        /// opponent class → overall. The first bucket that holds data wins.
+        /// Resolution order (narrowest wins): deck code → archetype slug →
+        /// coin-state bucket (OnCoin / OnPlay) → opponent class → overall.
         /// </summary>
-        public KeepRateSample Resolve(OpponentClass opponent, string deckCode, string archetypeId = null)
+        public KeepRateSample Resolve(OpponentClass opponent, string deckCode, string archetypeId = null, bool? hasCoin = null)
         {
             if (!string.IsNullOrEmpty(deckCode) && ByDeck.TryGetValue(deckCode, out var d) && d.HasData)
                 return d;
             if (!string.IsNullOrEmpty(archetypeId) && ByArchetype.TryGetValue(archetypeId, out var a) && a.HasData)
                 return a;
+            if (hasCoin == true && OnCoin.HasData) return OnCoin;
+            if (hasCoin == false && OnPlay.HasData) return OnPlay;
             if (opponent != OpponentClass.Unknown && ByOpponent.TryGetValue(opponent, out var o) && o.HasData)
                 return o;
             return Overall;
