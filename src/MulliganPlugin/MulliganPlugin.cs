@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Windows.Controls;
+using System.Reflection;
 using HstMulligan.Core.Abstractions;
 using HstMulligan.Core.Data;
 using HstMulligan.Core.Events;
 using HstMulligan.Core.Live;
+using HstMulligan.Core.Localization;
 using HstMulligan.Plugin.Bindings;
 using HstMulligan.Plugin.Config;
 using HstMulligan.Plugin.Diagnostics;
@@ -46,6 +48,7 @@ namespace HstMulligan.Plugin
                 Path.Combine(Path.GetDirectoryName(PluginSettings.SettingsPath) ?? ".", "log.txt"),
                 LogLevel.Info);
             _logger.Info($"Mulligan V2 {Version} loading");
+            BootstrapLocalization(_settings, _logger);
 
             _http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("HST-MulliganV2/" + Version);
@@ -74,6 +77,34 @@ namespace HstMulligan.Plugin
             _menuItem.Click += (_, __) => OnButtonPress();
 
             _logger.Info("Mulligan V2 loaded");
+        }
+
+        private static void BootstrapLocalization(PluginSettings settings, ILogger log)
+        {
+            var locale = string.IsNullOrWhiteSpace(settings.Locale) ? "en" : settings.Locale.Trim();
+            var dir = settings.LocalizationDir;
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                try
+                {
+                    var asmPath = Assembly.GetExecutingAssembly().Location;
+                    var asmDir = Path.GetDirectoryName(asmPath);
+                    if (!string.IsNullOrEmpty(asmDir))
+                        dir = Path.Combine(asmDir, "Assets");
+                }
+                catch (Exception ex) { log.Warn("locale dir probe failed", ex); }
+            }
+            var path = string.IsNullOrEmpty(dir) ? null : Path.Combine(dir, $"strings-{locale}.json");
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                Localization.Current = JsonLocalization.LoadFile(path, locale);
+                log.Info($"localization loaded: {path}");
+            }
+            else
+            {
+                Localization.Current = NullLocalization.Instance;
+                log.Info($"localization falling back to defaults (looked for {path ?? "<no dir>"})");
+            }
         }
 
         private static IArchetypeIndex BuildArchetypeIndex(PluginSettings settings, HttpClient http, ILogger log)

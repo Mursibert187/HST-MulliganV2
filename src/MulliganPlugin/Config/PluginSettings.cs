@@ -23,6 +23,8 @@ namespace HstMulligan.Plugin.Config
         public string ArchetypeIndexPath { get; set; } = "";
         public string ArchetypeIndexUrl { get; set; } = "";
         public int ArchetypeIndexTtlMinutes { get; set; } = 180;
+        public string Locale { get; set; } = "en";
+        public string LocalizationDir { get; set; } = "";
 
         [JsonIgnore]
         public static string SettingsPath => Path.Combine(

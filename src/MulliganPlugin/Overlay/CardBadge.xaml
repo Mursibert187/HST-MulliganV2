@@ -2,39 +2,44 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Focusable="False" IsHitTestVisible="True"
-             Background="Transparent">
+             Background="Transparent"
+             ToolTip="{Binding ToolTipText}">
     <Grid x:Name="Root">
         <Ellipse x:Name="Backdrop" Fill="#CC0C1018"/>
-        <Path x:Name="RingArc" Stretch="None" Stroke="Transparent"/>
+        <Path x:Name="RingArc"
+              Stretch="None"
+              Stroke="Transparent"
+              Fill="{Binding RingFill}"
+              Data="{Binding RingGeometry}"/>
         <Ellipse x:Name="InnerHole" Fill="#EE0A0F15"/>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock x:Name="PercentLabel"
-                       Foreground="#F6F6F6"
+            <TextBlock Foreground="#F6F6F6"
                        FontFamily="Segoe UI"
                        FontWeight="SemiBold"
                        TextAlignment="Center"
-                       Text="—"/>
-            <TextBlock x:Name="GradeLabel"
-                       Foreground="#B8B8B8"
+                       Text="{Binding PercentText}"
+                       FontSize="{Binding PercentFontSize}"/>
+            <TextBlock Foreground="#B8B8B8"
                        FontFamily="Segoe UI"
-                       FontSize="9"
                        Opacity="0.9"
                        TextAlignment="Center"
-                       Text=""/>
-            <TextBlock x:Name="LiftLabel"
-                       Foreground="#8EC8A0"
-                       FontFamily="Segoe UI"
-                       FontSize="9"
+                       Text="{Binding GradeText}"
+                       FontSize="{Binding GradeFontSize}"/>
+            <TextBlock FontFamily="Segoe UI"
                        TextAlignment="Center"
-                       Text=""/>
+                       Text="{Binding LiftText}"
+                       Foreground="{Binding LiftBrush}"
+                       FontSize="{Binding LiftFontSize}"
+                       Visibility="{Binding LiftVisibility}"/>
         </StackPanel>
-        <TextBlock x:Name="LowSampleGlyph"
-                   HorizontalAlignment="Left"
+        <TextBlock HorizontalAlignment="Left"
                    VerticalAlignment="Top"
                    Foreground="#F6C97E"
                    FontFamily="Segoe UI"
                    FontWeight="Bold"
                    Margin="4,2,0,0"
-                   Text=""/>
+                   Text="{Binding LowSampleText}"
+                   FontSize="{Binding GlyphFontSize}"
+                   Visibility="{Binding LowSampleVisibility}"/>
     </Grid>
 </UserControl>

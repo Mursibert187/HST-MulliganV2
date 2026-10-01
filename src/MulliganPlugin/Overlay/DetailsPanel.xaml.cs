@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -223,12 +224,14 @@ namespace HstMulligan.Plugin.Overlay
             return g;
         }
 
+        private const double MiniBarWidth = 36.0;
+
         private static UIElement BuildMiniBar(MulliganAdvice advice)
         {
             var container = new Grid
             {
-                Width = 36,
-                Height = 6,
+                Width = MiniBarWidth,
+                Height = 8,
                 Margin = new Thickness(4, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
@@ -237,17 +240,33 @@ namespace HstMulligan.Plugin.Overlay
                 Fill = new SolidColorBrush(Color.FromRgb(0x27, 0x30, 0x3A)),
                 RadiusX = 2, RadiusY = 2,
             });
-            if (advice.HasData)
+            if (!advice.HasData) return container;
+
+            var ringColor = ConfidenceColors.ForAdvice(advice.Grade, advice.Confidence);
+            var band = WilsonInterval.Compute(advice.Sample.Kept, advice.Sample.Total);
+            if (band.HasData)
             {
-                var ringColor = ConfidenceColors.ForAdvice(advice.Grade, advice.Confidence);
+                var bandBrush = ToBrush(ringColor);
+                bandBrush.Opacity = 0.35;
+                var left = MiniBarWidth * band.Low;
+                var width = Math.Max(1.0, MiniBarWidth * (band.High - band.Low));
                 container.Children.Add(new Rectangle
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
-                    Width = 36 * (double.IsNaN(advice.KeepRate) ? 0 : advice.KeepRate),
-                    Fill = ToBrush(ringColor),
+                    Margin = new Thickness(left, 0, 0, 0),
+                    Width = width,
+                    Fill = bandBrush,
                     RadiusX = 2, RadiusY = 2,
                 });
             }
+            var centerX = MiniBarWidth * (double.IsNaN(advice.KeepRate) ? 0 : advice.KeepRate);
+            container.Children.Add(new Rectangle
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(Math.Max(0, centerX - 1), 0, 0, 0),
+                Width = 2,
+                Fill = ToBrush(ringColor),
+            });
             return container;
         }
 

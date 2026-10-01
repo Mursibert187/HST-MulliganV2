@@ -1,0 +1,26 @@
+{
+  "_about": "Signature → archetype slug lookup consumed by JsonArchetypeIndex. Signature is a SHA1 over the comma-joined, ascending, duplicate-preserving dbfId list of a 30-card decklist. Point PluginSettings.ArchetypeIndexPath here, or publish a maintained copy at ArchetypeIndexUrl.",
+  "_schemaVersion": 1,
+  "classes": [
+    {
+      "class": "MAGE",
+      "archetypes": [
+        { "id": "example-archetype", "signature": "0000000000000000000000000000000000000000" }
+      ]
+    },
+    {
+      "class": "WARRIOR",
+      "archetypes": []
+    },
+    {
+      "class": "HUNTER",       "archetypes": [] },
+    { "class": "DRUID",        "archetypes": [] },
+    { "class": "PALADIN",      "archetypes": [] },
+    { "class": "PRIEST",       "archetypes": [] },
+    { "class": "ROGUE",        "archetypes": [] },
+    { "class": "SHAMAN",       "archetypes": [] },
+    { "class": "WARLOCK",      "archetypes": [] },
+    { "class": "DEMONHUNTER",  "archetypes": [] },
+    { "class": "DEATHKNIGHT",  "archetypes": [] }
+  ]
+}
