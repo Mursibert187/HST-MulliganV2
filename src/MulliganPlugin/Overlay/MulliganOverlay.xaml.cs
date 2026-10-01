@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using Hearthstone_Deck_Tracker.API;
-using HstMulligan.Core.Live;
+using HstMulligan.Core.Abstractions;
+using HstMulligan.Core.Events;
 using HstMulligan.Core.Models;
 using HstMulligan.Plugin.Bindings;
 using HstMulligan.Plugin.Config;
@@ -13,76 +14,86 @@ namespace HstMulligan.Plugin.Overlay
     public partial class MulliganOverlay : UserControl
     {
         private readonly PluginSettings _settings;
-        private readonly LiveMulliganState _state;
-        private readonly KeepRateCalculator _calc;
+        private readonly IEventBus _bus;
+        private readonly ILogger _log;
         private readonly List<CardBadge> _badges = new List<CardBadge>();
         private readonly DetailsPanel _details;
-        private MulliganDataset _dataset = MulliganDataset.Empty;
+        private readonly List<IDisposable> _subs = new List<IDisposable>();
         private bool _attached;
 
-        public MulliganOverlay(PluginSettings settings, LiveMulliganState state, KeepRateCalculator calc)
+        public MulliganOverlay(PluginSettings settings, IEventBus bus, ILogger log = null)
         {
             InitializeComponent();
             _settings = settings;
-            _state = state;
-            _calc = calc;
+            _bus = bus;
+            _log = log ?? NullLogger.Instance;
             _details = new DetailsPanel();
             DetailsDock.Children.Add(_details);
             _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
-            _state.Changed += (_, __) => Refresh(_dataset);
             Opacity = _settings.OverlayOpacity;
             Visibility = Visibility.Collapsed;
-        }
 
-        public void OnSettingsChanged()
-        {
-            Opacity = _settings.OverlayOpacity;
-            _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        public void OnMulliganOpened(MulliganDataset dataset)
-        {
-            _dataset = dataset ?? MulliganDataset.Empty;
-            EnsureAttached();
-            Visibility = Visibility.Visible;
-            Refresh(_dataset);
-        }
-
-        public void OnMulliganClosed()
-        {
-            Visibility = Visibility.Collapsed;
-            EnsureBadgeCount(0);
+            _subs.Add(_bus.Subscribe<MulliganPhaseStartedEvent>(_ => Dispatch(OnOpened)));
+            _subs.Add(_bus.Subscribe<MulliganPhaseEndedEvent>(_ => Dispatch(OnClosed)));
+            _subs.Add(_bus.Subscribe<AdviceComputedEvent>(e => Dispatch(() => Render(e))));
+            _subs.Add(_bus.Subscribe<SettingsChangedEvent>(_ => Dispatch(ApplySettings)));
         }
 
         public void Detach()
         {
+            foreach (var s in _subs) s.Dispose();
+            _subs.Clear();
             if (!_attached) return;
             try { Core.OverlayCanvas.Children.Remove(this); } catch { }
             _attached = false;
         }
 
-        public void Refresh(MulliganDataset dataset)
+        private void Dispatch(Action a)
         {
-            _dataset = dataset ?? _dataset ?? MulliganDataset.Empty;
-            var cards = _state.Cards;
-            var ctx = _state.Context;
-            EnsureBadgeCount(cards.Count);
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null || dispatcher.CheckAccess()) a();
+            else dispatcher.BeginInvoke(a);
+        }
+
+        private void OnOpened()
+        {
+            EnsureAttached();
+            Visibility = Visibility.Visible;
+        }
+
+        private void OnClosed()
+        {
+            Visibility = Visibility.Collapsed;
+            EnsureBadgeCount(0);
+        }
+
+        private void ApplySettings()
+        {
+            Opacity = _settings.OverlayOpacity;
+            _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void Render(AdviceComputedEvent evt)
+        {
+            var advices = evt.Advices;
+            EnsureBadgeCount(advices.Count);
             var bounds = OverlayPositioner.WindowBounds();
-            for (int i = 0; i < cards.Count; i++)
+            for (int i = 0; i < advices.Count; i++)
             {
-                var card = cards[i];
-                var slot = OverlayPositioner.ComputeSlot(i, cards.Count, bounds.Width, bounds.Height);
-                var advice = _calc.Advise(card, _dataset, ctx);
+                var advice = advices[i];
+                var slot = OverlayPositioner.ComputeSlot(i, advices.Count, bounds.Width, bounds.Height);
                 var badge = _badges[i];
-                var scale = _settings.OverlayScale;
-                var size = slot.BadgeSize * scale;
+                var size = slot.BadgeSize * _settings.OverlayScale;
                 badge.Update(advice, size);
                 Canvas.SetLeft(badge, slot.BadgeCenter.X - size / 2.0);
                 Canvas.SetTop(badge, slot.BadgeCenter.Y - size / 2.0);
-                if (_state.IsTossed(card))
+                if (evt.TossFlags != null
+                    && evt.TossFlags.TryGetValue(advice.Card.SlotIndex, out var t) && t)
                     badge.Opacity = 0.35;
+                else
+                    badge.Opacity = advice.HasData ? 1.0 : 0.65;
             }
-            _details.Update(cards, _state, _calc, _dataset);
+            _details.Update(advices, evt.TossFlags, evt.Context, evt.Dataset, evt.ExpectedWinrate);
         }
 
         private void EnsureAttached()
@@ -97,8 +108,9 @@ namespace HstMulligan.Plugin.Overlay
                 Width = bounds.Width;
                 Height = bounds.Height;
                 _attached = true;
+                _log.Debug("overlay attached");
             }
-            catch { }
+            catch (Exception ex) { _log.Warn("overlay attach failed", ex); }
         }
 
         private void EnsureBadgeCount(int desired)

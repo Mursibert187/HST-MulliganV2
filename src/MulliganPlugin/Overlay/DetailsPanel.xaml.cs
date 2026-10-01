@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using HstMulligan.Core.Live;
 using HstMulligan.Core.Models;
 using HstMulligan.Core.Overlay;
 
@@ -12,37 +11,29 @@ namespace HstMulligan.Plugin.Overlay
 {
     public partial class DetailsPanel : UserControl
     {
-        private readonly ExpectedWinrateEstimator _estimator = new ExpectedWinrateEstimator();
-
         public DetailsPanel()
         {
             InitializeComponent();
         }
 
         public void Update(
-            IReadOnlyList<MulliganCard> cards,
-            LiveMulliganState state,
-            KeepRateCalculator calc,
-            MulliganDataset dataset)
+            IReadOnlyList<MulliganAdvice> advices,
+            IReadOnlyDictionary<int, bool> tossFlags,
+            MulliganContext ctx,
+            MulliganDataset dataset,
+            double expectedWinrate)
         {
-            var ctx = state.Context;
             SubHeader.Text = HeaderLine(ctx, dataset);
             Rows.Items.Clear();
-
-            var advices = new List<MulliganAdvice>(cards.Count);
-            var tossFlags = new Dictionary<int, bool>(cards.Count);
             long totalSamples = 0;
-            foreach (var card in cards)
+            foreach (var advice in advices)
             {
-                var advice = calc.Advise(card, dataset, ctx);
-                advices.Add(advice);
-                tossFlags[card.SlotIndex] = state.IsTossed(card);
+                var tossed = tossFlags != null
+                    && tossFlags.TryGetValue(advice.Card.SlotIndex, out var t) && t;
                 totalSamples += advice.Sample.Total;
-                Rows.Items.Add(BuildRow(card, advice, state.IsTossed(card)));
+                Rows.Items.Add(BuildRow(advice, tossed));
             }
-
-            var expected = _estimator.Estimate(advices, tossFlags, dataset.BaseWinrate);
-            ExpectedLabel.Text = AdviceFormatter.ExpectedWinrateLabel(expected);
+            ExpectedLabel.Text = AdviceFormatter.ExpectedWinrateLabel(expectedWinrate);
             OverallSample.Text = totalSamples > 0
                 ? $"queried {totalSamples:N0} games"
                 : "awaiting data";
@@ -50,6 +41,8 @@ namespace HstMulligan.Plugin.Overlay
 
         private static string HeaderLine(MulliganContext ctx, MulliganDataset ds)
         {
+            if (ctx == null) ctx = MulliganContext.Unknown;
+            if (ds == null) ds = MulliganDataset.Empty;
             var sb = new StringBuilder();
             sb.Append("vs ").Append(ctx.Opponent == OpponentClass.Unknown ? "any" : ctx.Opponent.ToString().ToLowerInvariant());
             sb.Append(" · ").Append(ctx.Format == FormatType.Unknown ? "any format" : ctx.Format.ToString().ToLowerInvariant());
@@ -59,7 +52,7 @@ namespace HstMulligan.Plugin.Overlay
             return sb.ToString();
         }
 
-        private static UIElement BuildRow(MulliganCard card, MulliganAdvice advice, bool tossed)
+        private static UIElement BuildRow(MulliganAdvice advice, bool tossed)
         {
             var g = new Grid
             {
@@ -77,7 +70,7 @@ namespace HstMulligan.Plugin.Overlay
 
             var name = new TextBlock
             {
-                Text = card.Name,
+                Text = advice.Card.Name,
                 Foreground = new SolidColorBrush(Color.FromRgb(0xF0, 0xF0, 0xF0)),
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 12,

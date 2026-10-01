@@ -1,49 +1,52 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Hearthstone_Deck_Tracker.API;
+using HstMulligan.Core.Abstractions;
 using HstMulligan.Core.Data;
+using HstMulligan.Core.Events;
 using HstMulligan.Core.Live;
 using HstMulligan.Core.Models;
 using HstMulligan.Plugin.Config;
-using HstMulligan.Plugin.Overlay;
 
 namespace HstMulligan.Plugin.Bindings
 {
+    /// <summary>
+    /// Translates HDT game events + per-tick mirror reads into typed bus
+    /// events. Owns nothing beyond that: the engine, overlay and details
+    /// panel all live further downstream and never see HDT internals.
+    /// </summary>
     internal sealed class GameEventBridge
     {
         private readonly PluginSettings _settings;
-        private readonly IMulliganStateGate _gate;
-        private readonly LiveMulliganState _state;
-        private readonly MulliganOverlay _overlay;
-        private readonly HearthstoneMirrorAdapter _adapter = new HearthstoneMirrorAdapter();
+        private readonly IGameClient _client;
+        private readonly IEventBus _bus;
+        private readonly ILogger _log;
 
         private IMulliganDataSource _source;
         private CancellationTokenSource _fetchCts;
+
+        private bool _phaseOpen;
+        private MulliganContext _lastContext;
+        private string _lastHandSig;
+        private string _lastTossSig;
         private string _lastFetchKey;
-        private MulliganDataset _dataset = MulliganDataset.Empty;
 
         public GameEventBridge(
             PluginSettings settings,
             IMulliganDataSource source,
-            IMulliganStateGate gate,
-            LiveMulliganState state,
-            MulliganOverlay overlay)
+            IGameClient client,
+            IEventBus bus,
+            ILogger log)
         {
             _settings = settings;
             _source = source;
-            _gate = gate;
-            _state = state;
-            _overlay = overlay;
-            _gate.Opened += (_, __) => _overlay.OnMulliganOpened(_dataset);
-            _gate.Closed += (_, __) => _overlay.OnMulliganClosed();
-        }
-
-        public void OnSettingsChanged()
-        {
-            _lastFetchKey = null;
-            _dataset = MulliganDataset.Empty;
+            _client = client;
+            _bus = bus;
+            _log = log ?? NullLogger.Instance;
+            _bus.Subscribe<SettingsChangedEvent>(_ => OnSettingsChanged());
         }
 
         public void UpdateSource(IMulliganDataSource source) => _source = source;
@@ -52,34 +55,46 @@ namespace HstMulligan.Plugin.Bindings
         {
             GameEvents.OnGameStart.Add(HandleGameStart);
             GameEvents.OnGameEnd.Add(HandleGameEnd);
-            GameEvents.OnPlayerMulligan.Add(_ => Tick());
             GameEvents.OnInMenu.Add(HandleGameEnd);
+            GameEvents.OnPlayerMulligan.Add(_ => Tick());
+            _log.Info("GameEventBridge attached");
         }
 
         public void Detach()
         {
-            // HDT's API.GameEvents doesn't expose Remove for individual delegates;
-            // handlers become no-ops after we null internal state.
             _fetchCts?.Cancel();
+            _log.Info("GameEventBridge detached");
+        }
+
+        public void OnSettingsChanged()
+        {
+            _lastFetchKey = null;
         }
 
         public void Tick()
         {
-            if (!_gate.IsOpen) return;
+            if (!_phaseOpen && !_client.IsMulliganPhase) return;
+            if (!_phaseOpen && _client.IsMulliganPhase)
+                OpenPhase();
+
             try
             {
-                var ctx = _adapter.ReadContext();
-                var cards = _adapter.ReadMulliganHand();
-                var tossFlags = _adapter.ReadTossFlags();
-                _state.SetContext(ctx);
-                _state.SetCards(cards);
-                foreach (var kv in tossFlags)
+                var ctx = _client.ReadContext();
+                if (!EqualContext(ctx, _lastContext))
                 {
-                    // toggle only if actual state differs
-                    var card = cards.Count > kv.Key ? cards[kv.Key] : null;
-                    if (card == null) continue;
-                    if (_state.IsTossed(card) != kv.Value)
-                        _state.ToggleToss(kv.Key);
+                    _lastContext = ctx;
+                    _bus.Publish(new MulliganContextChangedEvent(ctx));
+                }
+
+                var cards = _client.ReadMulliganHand();
+                var toss  = _client.ReadTossFlags();
+                var handSig = Sig(cards);
+                var tossSig = Sig(toss);
+                if (handSig != _lastHandSig || tossSig != _lastTossSig)
+                {
+                    _lastHandSig = handSig;
+                    _lastTossSig = tossSig;
+                    _bus.Publish(new MulliganHandChangedEvent(cards, toss));
                 }
 
                 var key = $"{ctx.Format.ToWireString()}|{ctx.RankBracket.ToWireString()}|{ctx.DeckCode ?? "-"}";
@@ -88,23 +103,32 @@ namespace HstMulligan.Plugin.Bindings
                     _lastFetchKey = key;
                     KickFetch(ctx);
                 }
-                _overlay.Refresh(_dataset);
             }
-            catch { }
+            catch (Exception ex) { _log.Warn("Tick failed", ex); }
         }
 
         private void HandleGameStart()
         {
-            _gate.NotifyGameStart();
+            OpenPhase();
             _lastFetchKey = null;
             Tick();
         }
 
+        private void OpenPhase()
+        {
+            _phaseOpen = true;
+            _lastContext = null;
+            _lastHandSig = null;
+            _lastTossSig = null;
+            _bus.Publish(new MulliganPhaseStartedEvent());
+        }
+
         private void HandleGameEnd()
         {
-            _gate.NotifyGameEnded();
-            _state.Clear();
+            if (!_phaseOpen) return;
+            _phaseOpen = false;
             _fetchCts?.Cancel();
+            _bus.Publish(new MulliganPhaseEndedEvent());
         }
 
         private void KickFetch(MulliganContext ctx)
@@ -118,16 +142,42 @@ namespace HstMulligan.Plugin.Bindings
             {
                 try
                 {
-                    var ds = await src.FetchAsync(query, token).ConfigureAwait(false);
+                    var ds = await src.FetchAsync(query, token).ConfigureAwait(false) ?? MulliganDataset.Empty;
                     if (token.IsCancellationRequested) return;
-                    _dataset = ds ?? MulliganDataset.Empty;
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                        _overlay.Refresh(_dataset);
+                        _bus.Publish(new DatasetLoadedEvent(ds));
                     }));
                 }
-                catch { }
+                catch (Exception ex) { _log.Warn("fetch failed", ex); }
             }, token);
+        }
+
+        private static bool EqualContext(MulliganContext a, MulliganContext b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null) return false;
+            return a.Format == b.Format
+                && a.Opponent == b.Opponent
+                && a.RankBracket == b.RankBracket
+                && string.Equals(a.DeckCode, b.DeckCode, StringComparison.Ordinal)
+                && a.HasCoin == b.HasCoin;
+        }
+
+        private static string Sig(IReadOnlyList<MulliganCard> cards)
+        {
+            if (cards == null || cards.Count == 0) return "";
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in cards) sb.Append(c.DbfId).Append(':').Append(c.SlotIndex).Append(';');
+            return sb.ToString();
+        }
+
+        private static string Sig(IReadOnlyDictionary<int, bool> flags)
+        {
+            if (flags == null || flags.Count == 0) return "";
+            var sb = new System.Text.StringBuilder();
+            foreach (var kv in flags) sb.Append(kv.Key).Append('=').Append(kv.Value ? '1' : '0').Append(';');
+            return sb.ToString();
         }
     }
 }
