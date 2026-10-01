@@ -156,7 +156,7 @@ namespace HstMulligan.Plugin.Bindings
             catch { return HstMulligan.Core.Models.OpponentClass.Unknown; }
         }
 
-        private static RankBracket ReadRankBracket(MatchInfo matchInfo)
+        private static RankBracket ReadRankBracket(HearthMirror.Objects.MatchInfo matchInfo)
         {
             try
             {
