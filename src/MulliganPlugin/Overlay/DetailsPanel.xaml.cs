@@ -31,6 +31,7 @@ namespace HstMulligan.Plugin.Overlay
             double expectedWinrate)
         {
             SubHeader.Text = HeaderLine(ctx, dataset);
+            HighlightActiveOpponentButton(ctx);
             Rows.Items.Clear();
             long totalSamples = 0;
             foreach (var advice in advices)
@@ -44,6 +45,67 @@ namespace HstMulligan.Plugin.Overlay
             OverallSample.Text = totalSamples > 0
                 ? $"queried {totalSamples:N0} games"
                 : "awaiting data";
+        }
+
+        private static readonly SolidColorBrush _selectedBg =
+            new SolidColorBrush(Color.FromRgb(0x2A, 0x35, 0x40));
+        private static readonly SolidColorBrush _selectedFg =
+            new SolidColorBrush(Color.FromRgb(0xF6, 0xF6, 0xF6));
+        private static readonly SolidColorBrush _selectedBorder =
+            new SolidColorBrush(Color.FromRgb(0x7F, 0xC5, 0x4F));
+        private static readonly SolidColorBrush _defaultFg =
+            new SolidColorBrush(Color.FromRgb(0xD0, 0xD0, 0xD0));
+
+        private void HighlightActiveOpponentButton(MulliganContext ctx)
+        {
+            Button active;
+            if (ctx == null || !ctx.OverrideOpponent.HasValue)
+                active = OppAutoButton;
+            else
+            {
+                switch (ctx.OverrideOpponent.Value)
+                {
+                    case OpponentClass.Unknown:     active = OppOverallBtn;  break;
+                    case OpponentClass.Mage:        active = OppMageBtn;     break;
+                    case OpponentClass.Warrior:     active = OppWarriorBtn;  break;
+                    case OpponentClass.Hunter:      active = OppHunterBtn;   break;
+                    case OpponentClass.Druid:       active = OppDruidBtn;    break;
+                    case OpponentClass.Paladin:     active = OppPaladinBtn;  break;
+                    case OpponentClass.Priest:      active = OppPriestBtn;   break;
+                    case OpponentClass.Rogue:       active = OppRogueBtn;    break;
+                    case OpponentClass.Shaman:      active = OppShamanBtn;   break;
+                    case OpponentClass.Warlock:     active = OppWarlockBtn;  break;
+                    case OpponentClass.DemonHunter: active = OppDemonBtn;    break;
+                    case OpponentClass.DeathKnight: active = OppDkBtn;       break;
+                    default:                        active = OppAutoButton;  break;
+                }
+            }
+            foreach (var b in AllOpponentButtons())
+            {
+                var selected = ReferenceEquals(b, active);
+                b.Background    = selected ? _selectedBg : System.Windows.Media.Brushes.Transparent;
+                b.Foreground    = selected ? _selectedFg : _defaultFg;
+                b.BorderBrush   = selected ? _selectedBorder : System.Windows.Media.Brushes.Transparent;
+                b.BorderThickness = new Thickness(1);
+                b.FontWeight    = selected ? FontWeights.SemiBold : FontWeights.Normal;
+            }
+        }
+
+        private IEnumerable<Button> AllOpponentButtons()
+        {
+            yield return OppAutoButton;
+            yield return OppOverallBtn;
+            yield return OppMageBtn;
+            yield return OppWarriorBtn;
+            yield return OppHunterBtn;
+            yield return OppDruidBtn;
+            yield return OppPaladinBtn;
+            yield return OppPriestBtn;
+            yield return OppRogueBtn;
+            yield return OppShamanBtn;
+            yield return OppWarlockBtn;
+            yield return OppDemonBtn;
+            yield return OppDkBtn;
         }
 
         private void OppAutoButton_Click(object sender, RoutedEventArgs e)    => PublishOverride(null);
