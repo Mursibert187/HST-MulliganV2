@@ -74,5 +74,5 @@ if ($HdtInstall) {
     Copy-FromRelease $Version
 }
 
-Write-Host "Done. Files in $LibDir:"
+Write-Host "Done. Files in ${LibDir}:"
 Get-ChildItem $LibDir | ForEach-Object { Write-Host "  $($_.Name)" }
