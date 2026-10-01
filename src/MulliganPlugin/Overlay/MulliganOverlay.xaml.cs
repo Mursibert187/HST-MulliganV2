@@ -8,6 +8,7 @@ using HstMulligan.Core.Events;
 using HstMulligan.Core.Models;
 using HstMulligan.Plugin.Bindings;
 using HstMulligan.Plugin.Config;
+using HdtCore = Hearthstone_Deck_Tracker.API.Core;
 
 namespace HstMulligan.Plugin.Overlay
 {
@@ -46,7 +47,7 @@ namespace HstMulligan.Plugin.Overlay
             foreach (var s in _subs) s.Dispose();
             _subs.Clear();
             if (!_attached) return;
-            try { Core.OverlayCanvas.Children.Remove(this); } catch { }
+            try { HdtCore.OverlayCanvas.Children.Remove(this); } catch { }
             _attached = false;
         }
 
@@ -110,7 +111,7 @@ namespace HstMulligan.Plugin.Overlay
             if (_attached) return;
             try
             {
-                Core.OverlayCanvas.Children.Add(this);
+                HdtCore.OverlayCanvas.Children.Add(this);
                 Canvas.SetLeft(this, 0);
                 Canvas.SetTop(this, 0);
                 var bounds = OverlayPositioner.WindowBounds();

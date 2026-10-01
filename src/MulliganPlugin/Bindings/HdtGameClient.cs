@@ -4,6 +4,7 @@ using Hearthstone_Deck_Tracker;
 using HstMulligan.Core.Abstractions;
 using HstMulligan.Core.Live;
 using HstMulligan.Core.Models;
+using HdtCore = Hearthstone_Deck_Tracker.API.Core;
 
 namespace HstMulligan.Plugin.Bindings
 {
@@ -24,7 +25,7 @@ namespace HstMulligan.Plugin.Bindings
         {
             get
             {
-                try { return !(Core.Game?.IsMulliganDone ?? true); }
+                try { return !(HdtCore.Game?.IsMulliganDone ?? true); }
                 catch { return false; }
             }
         }

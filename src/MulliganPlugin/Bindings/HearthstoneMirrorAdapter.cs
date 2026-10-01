@@ -5,6 +5,7 @@ using Hearthstone_Deck_Tracker;
 using Hearthstone_Deck_Tracker.Hearthstone;
 using HstMulligan.Core.Live;
 using HstMulligan.Core.Models;
+using HdtCore = Hearthstone_Deck_Tracker.API.Core;
 
 namespace HstMulligan.Plugin.Bindings
 {
@@ -20,7 +21,7 @@ namespace HstMulligan.Plugin.Bindings
             var result = new List<MulliganCard>(4);
             try
             {
-                var game = Core.Game;
+                var game = HdtCore.Game;
                 if (game?.Player == null) return result;
                 var entities = game.Entities?.Values;
                 if (entities == null) return result;
@@ -35,7 +36,7 @@ namespace HstMulligan.Plugin.Bindings
                     var card = Database.GetCardFromId(entity.CardId);
                     if (card == null) continue;
                     result.Add(new MulliganCard(
-                        card.DbfIf(),
+                        card.DbfId,
                         entity.CardId,
                         card.LocalizedName,
                         card.Cost,
@@ -51,8 +52,8 @@ namespace HstMulligan.Plugin.Bindings
         {
             try
             {
-                var game = Core.Game;
-                var opp = OpponentClass.Unknown;
+                var game = HdtCore.Game;
+                var opp = HstMulligan.Core.Models.OpponentClass.Unknown;
                 if (game?.Opponent?.Class != null)
                     opp = OpponentClassExtensions.FromWireString(game.Opponent.Class.ToUpperInvariant());
                 var format = MapFormat(game?.CurrentFormat);
@@ -72,7 +73,7 @@ namespace HstMulligan.Plugin.Bindings
             var result = new Dictionary<int, bool>();
             try
             {
-                var game = Core.Game;
+                var game = HdtCore.Game;
                 if (game?.Player == null) return result;
                 var playerId = game.Player.Id;
                 int slot = 0;
@@ -125,9 +126,7 @@ namespace HstMulligan.Plugin.Bindings
                 if (deck?.Cards == null) return result;
                 foreach (var c in deck.Cards)
                 {
-                    var card = c.Id != null ? Database.GetCardFromId(c.Id) : null;
-                    if (card == null) continue;
-                    var dbf = card.DbfIf();
+                    var dbf = c.DbfId;
                     if (dbf <= 0) continue;
                     for (int i = 0; i < c.Count; i++) result.Add(dbf);
                 }
@@ -146,39 +145,27 @@ namespace HstMulligan.Plugin.Bindings
             catch { return null; }
         }
 
-        public OpponentClass ReadActiveDeckHeroClass()
+        public HstMulligan.Core.Models.OpponentClass ReadActiveDeckHeroClass()
         {
             try
             {
                 var deck = DeckList.Instance?.ActiveDeck;
-                if (deck?.Class == null) return OpponentClass.Unknown;
+                if (deck?.Class == null) return HstMulligan.Core.Models.OpponentClass.Unknown;
                 return OpponentClassExtensions.FromWireString(deck.Class.ToUpperInvariant());
             }
-            catch { return OpponentClass.Unknown; }
+            catch { return HstMulligan.Core.Models.OpponentClass.Unknown; }
         }
 
-        private static RankBracket ReadRankBracket(dynamic matchInfo)
+        private static RankBracket ReadRankBracket(MatchInfo matchInfo)
         {
             try
             {
-                if (matchInfo == null) return RankBracket.AllRanks;
-                int? star = matchInfo.LocalPlayer?.StarLevel;
-                int? legend = matchInfo.LocalPlayer?.LegendRank;
+                if (matchInfo?.LocalPlayer == null) return RankBracket.AllRanks;
+                int? star = matchInfo.LocalPlayer.StarLevel;
+                int? legend = matchInfo.LocalPlayer.LegendRank;
                 return RankBracketExtensions.FromStars(star, legend);
             }
             catch { return RankBracket.AllRanks; }
-        }
-    }
-
-    internal static class CardCompatExt
-    {
-        // HearthDb's Card DbfId has changed name across versions; keep a
-        // single access point that survives either spelling.
-        public static int DbfIf(this HearthDb.Card card)
-        {
-            try { return card.DbfId; } catch { }
-            try { return (int)card.GetType().GetProperty("DbfId").GetValue(card); } catch { }
-            return 0;
         }
     }
 }
