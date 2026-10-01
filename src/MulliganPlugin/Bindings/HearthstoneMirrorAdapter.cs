@@ -94,15 +94,15 @@ namespace HstMulligan.Plugin.Bindings
             return result;
         }
 
-        private static FormatType MapFormat(HearthDb.Enums.Format? f)
+        private static HstMulligan.Core.Models.FormatType MapFormat(HearthDb.Enums.FormatType? f)
         {
             switch (f)
             {
-                case HearthDb.Enums.Format.FT_STANDARD: return FormatType.Standard;
-                case HearthDb.Enums.Format.FT_WILD:     return FormatType.Wild;
-                case HearthDb.Enums.Format.FT_TWIST:    return FormatType.Twist;
-                case HearthDb.Enums.Format.FT_CLASSIC:  return FormatType.Classic;
-                default: return FormatType.Unknown;
+                case HearthDb.Enums.FormatType.FT_STANDARD: return HstMulligan.Core.Models.FormatType.Standard;
+                case HearthDb.Enums.FormatType.FT_WILD:     return HstMulligan.Core.Models.FormatType.Wild;
+                case HearthDb.Enums.FormatType.FT_TWIST:    return HstMulligan.Core.Models.FormatType.Twist;
+                case HearthDb.Enums.FormatType.FT_CLASSIC:  return HstMulligan.Core.Models.FormatType.Classic;
+                default: return HstMulligan.Core.Models.FormatType.Unknown;
             }
         }
 
@@ -174,7 +174,7 @@ namespace HstMulligan.Plugin.Bindings
     {
         // HearthDb's Card DbfId has changed name across versions; keep a
         // single access point that survives either spelling.
-        public static int DbfIf(this HearthDb.CardDefs.Card card)
+        public static int DbfIf(this HearthDb.Card card)
         {
             try { return card.DbfId; } catch { }
             try { return (int)card.GetType().GetProperty("DbfId").GetValue(card); } catch { }
