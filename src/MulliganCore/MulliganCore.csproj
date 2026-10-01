@@ -9,4 +9,10 @@
     <PackageReference Include="System.Text.Json" Version="8.0.4" />
     <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>MulliganCore.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>
