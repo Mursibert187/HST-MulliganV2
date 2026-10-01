@@ -14,6 +14,7 @@ using HstMulligan.Plugin.Diagnostics;
 using HstMulligan.Plugin.Input;
 using HstMulligan.Plugin.Overlay;
 using Hearthstone_Deck_Tracker.Plugins;
+using PluginSettings = HstMulligan.Plugin.Config.PluginSettings;
 
 namespace HstMulligan.Plugin
 {
