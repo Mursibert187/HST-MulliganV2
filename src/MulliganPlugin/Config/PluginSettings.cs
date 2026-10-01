@@ -21,6 +21,8 @@ namespace HstMulligan.Plugin.Config
         public bool ShowDetailsPanel { get; set; } = true;
         public string DetailsPanelHotkey { get; set; } = "F9";
         public string ArchetypeIndexPath { get; set; } = "";
+        public string ArchetypeIndexUrl { get; set; } = "";
+        public int ArchetypeIndexTtlMinutes { get; set; } = 180;
 
         [JsonIgnore]
         public static string SettingsPath => Path.Combine(

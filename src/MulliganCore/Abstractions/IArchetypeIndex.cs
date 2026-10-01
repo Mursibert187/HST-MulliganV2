@@ -27,33 +27,81 @@ namespace HstMulligan.Core.Abstractions
 
     /// <summary>
     /// Signature → archetype slug lookup backed by a JSON file matching:
-    /// <code>{"class":"MAGE","archetypes":[{"id":"big-mage","signature":"3f1a…"},…]}</code>.
-    /// The signature is a SHA1 over the sorted dbfId list, hex-encoded.
+    /// <code>{"classes":[{"class":"MAGE","archetypes":[{"id":"big-mage","signature":"3f1a…"}]}]}</code>.
+    /// Signature is a SHA1 over the comma-joined sorted dbfId list.
     /// </summary>
     public sealed class JsonArchetypeIndex : IArchetypeIndex
     {
-        private readonly Dictionary<OpponentClass, Dictionary<string, string>> _byClass
-            = new Dictionary<OpponentClass, Dictionary<string, string>>();
+        private readonly IReadOnlyDictionary<OpponentClass, IReadOnlyDictionary<string, string>> _byClass;
 
         public JsonArchetypeIndex(string path)
         {
-            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                _byClass = ArchetypeIndexParser.Empty;
+                return;
+            }
             try
             {
                 using var stream = File.OpenRead(path);
-                using var doc = JsonDocument.Parse(stream);
-                var root = doc.RootElement;
-                if (!root.TryGetProperty("classes", out var classes) || classes.ValueKind != JsonValueKind.Array)
-                    return;
-                foreach (var cls in classes.EnumerateArray())
+                _byClass = ArchetypeIndexParser.Parse(stream);
+            }
+            catch { _byClass = ArchetypeIndexParser.Empty; }
+        }
+
+        public string Resolve(OpponentClass heroClass, IReadOnlyCollection<int> dbfIds)
+        {
+            if (dbfIds == null || dbfIds.Count == 0) return null;
+            if (!_byClass.TryGetValue(heroClass, out var sigs)) return null;
+            return sigs.TryGetValue(Signature.Compute(dbfIds), out var id) ? id : null;
+        }
+    }
+
+    public sealed class CompositeArchetypeIndex : IArchetypeIndex
+    {
+        private readonly IArchetypeIndex[] _layers;
+
+        public CompositeArchetypeIndex(params IArchetypeIndex[] layers)
+        {
+            _layers = (layers ?? Array.Empty<IArchetypeIndex>())
+                .Where(l => l != null).ToArray();
+        }
+
+        public string Resolve(OpponentClass heroClass, IReadOnlyCollection<int> dbfIds)
+        {
+            foreach (var l in _layers)
+            {
+                var hit = l.Resolve(heroClass, dbfIds);
+                if (!string.IsNullOrEmpty(hit)) return hit;
+            }
+            return null;
+        }
+    }
+
+    public static class ArchetypeIndexParser
+    {
+        public static readonly IReadOnlyDictionary<OpponentClass, IReadOnlyDictionary<string, string>> Empty =
+            new Dictionary<OpponentClass, IReadOnlyDictionary<string, string>>();
+
+        public static IReadOnlyDictionary<OpponentClass, IReadOnlyDictionary<string, string>> Parse(Stream jsonStream)
+        {
+            using var doc = JsonDocument.Parse(jsonStream);
+            return Parse(doc.RootElement);
+        }
+
+        public static IReadOnlyDictionary<OpponentClass, IReadOnlyDictionary<string, string>> Parse(JsonElement root)
+        {
+            var byClass = new Dictionary<OpponentClass, IReadOnlyDictionary<string, string>>();
+            if (!root.TryGetProperty("classes", out var classes) || classes.ValueKind != JsonValueKind.Array)
+                return byClass;
+            foreach (var cls in classes.EnumerateArray())
+            {
+                if (!cls.TryGetProperty("class", out var cName)) continue;
+                var oc = OpponentClassExtensions.FromWireString(cName.GetString());
+                if (oc == OpponentClass.Unknown) continue;
+                var sigMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (cls.TryGetProperty("archetypes", out var archs) && archs.ValueKind == JsonValueKind.Array)
                 {
-                    if (!cls.TryGetProperty("class", out var cName)) continue;
-                    var oc = OpponentClassExtensions.FromWireString(cName.GetString());
-                    if (oc == OpponentClass.Unknown) continue;
-                    if (!_byClass.TryGetValue(oc, out var sigMap))
-                        _byClass[oc] = sigMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    if (!cls.TryGetProperty("archetypes", out var archs) || archs.ValueKind != JsonValueKind.Array)
-                        continue;
                     foreach (var a in archs.EnumerateArray())
                     {
                         if (!a.TryGetProperty("id", out var id)) continue;
@@ -61,16 +109,9 @@ namespace HstMulligan.Core.Abstractions
                         sigMap[sig.GetString() ?? ""] = id.GetString();
                     }
                 }
+                byClass[oc] = sigMap;
             }
-            catch { }
-        }
-
-        public string Resolve(OpponentClass heroClass, IReadOnlyCollection<int> dbfIds)
-        {
-            if (dbfIds == null || dbfIds.Count == 0) return null;
-            if (!_byClass.TryGetValue(heroClass, out var sigs)) return null;
-            var signature = Signature.Compute(dbfIds);
-            return sigs.TryGetValue(signature, out var id) ? id : null;
+            return byClass;
         }
     }
 

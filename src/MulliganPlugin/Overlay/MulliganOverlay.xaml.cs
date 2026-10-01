@@ -38,6 +38,7 @@ namespace HstMulligan.Plugin.Overlay
             _subs.Add(_bus.Subscribe<MulliganPhaseEndedEvent>(_ => Dispatch(OnClosed)));
             _subs.Add(_bus.Subscribe<AdviceComputedEvent>(e => Dispatch(() => Render(e))));
             _subs.Add(_bus.Subscribe<SettingsChangedEvent>(_ => Dispatch(ApplySettings)));
+            _subs.Add(_bus.Subscribe<DetailsVisibilityToggleEvent>(_ => Dispatch(ToggleDetails)));
         }
 
         public void Detach()
@@ -72,6 +73,13 @@ namespace HstMulligan.Plugin.Overlay
         {
             Opacity = _settings.OverlayOpacity;
             _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void ToggleDetails()
+        {
+            _settings.ShowDetailsPanel = !_settings.ShowDetailsPanel;
+            _details.Visibility = _settings.ShowDetailsPanel ? Visibility.Visible : Visibility.Collapsed;
+            try { _settings.Save(); } catch { }
         }
 
         private void Render(AdviceComputedEvent evt)
