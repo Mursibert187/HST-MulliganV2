@@ -12,8 +12,15 @@ namespace HstMulligan.Plugin.Bindings
         {
             var sources = new List<IMulliganDataSource>();
 
-            // Pinned-deck feed takes priority when configured, because it's
-            // the only source that can deliver per-this-exact-deck stats.
+            // Pinned-deck feeds take priority when configured. The HTML
+            // scraper is first because it's the only source that returns
+            // per-this-exact-deck stats without an authenticated session.
+            if (!string.IsNullOrWhiteSpace(settings.PinnedDeckShortId) && settings.UseDeckPageScraper)
+            {
+                sources.Add(new DeckPageScraperSource(http,
+                    settings.DeckPageUrlTemplate,
+                    settings.DeckPageSessionCookie));
+            }
             if (!string.IsNullOrWhiteSpace(settings.PinnedDeckShortId)
                 && !string.IsNullOrWhiteSpace(settings.PinnedDeckUrlTemplate))
             {

@@ -37,6 +37,9 @@ namespace HstMulligan.Plugin.Config
             PinnedShortIdBox.Text = _settings.PinnedDeckShortId ?? "";
             PinnedUrlBox.Text = _settings.PinnedDeckUrlTemplate ?? "";
             PinnedSigBox.Text = _settings.PinnedDeckSignature ?? "";
+            UseScraperBox.IsChecked = _settings.UseDeckPageScraper;
+            DeckPageUrlBox.Text = _settings.DeckPageUrlTemplate ?? "";
+            DeckPageCookieBox.Text = _settings.DeckPageSessionCookie ?? "";
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -57,6 +60,9 @@ namespace HstMulligan.Plugin.Config
             _settings.PinnedDeckShortId = (PinnedShortIdBox.Text ?? "").Trim();
             _settings.PinnedDeckUrlTemplate = (PinnedUrlBox.Text ?? "").Trim();
             _settings.PinnedDeckSignature = (PinnedSigBox.Text ?? "").Trim();
+            _settings.UseDeckPageScraper = UseScraperBox.IsChecked == true;
+            _settings.DeckPageUrlTemplate = (DeckPageUrlBox.Text ?? "").Trim();
+            _settings.DeckPageSessionCookie = (DeckPageCookieBox.Text ?? "").Trim();
             _settings.Save();
             Saved?.Invoke(this, EventArgs.Empty);
             Close();

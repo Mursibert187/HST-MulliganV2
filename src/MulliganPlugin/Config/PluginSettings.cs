@@ -30,6 +30,9 @@ namespace HstMulligan.Plugin.Config
         public string PinnedDeckUrlTemplate { get; set; } =
             "https://hsreplay.net/analytics/query/single_deck_mulligan_guide_v2/?deck_id={shortId}&GameType={format}&RankRange={rank}";
         public bool OnlyShowForPinnedDeck { get; set; } = true;
+        public bool UseDeckPageScraper { get; set; } = true;
+        public string DeckPageUrlTemplate { get; set; } = "https://hsreplay.net/decks/{shortId}/";
+        public string DeckPageSessionCookie { get; set; } = "";
 
         [JsonIgnore]
         public static string SettingsPath => Path.Combine(
